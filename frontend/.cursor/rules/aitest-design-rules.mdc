@@ -1,0 +1,7 @@
+---
+description: (已迁移) AI测试管理模块页面样式与布局规范
+glob: "src/views/modules/aitest/**/*.vue,src/types/aitest.ts,backend/app/modules/aitest/**/*.py"
+---
+
+> 此文件已迁移至 `docs/aitest/` 目录，按模块拆分管理。
+> 请查看 [docs/aitest/general.md](../docs/aitest/general.md) 获取最新规范。

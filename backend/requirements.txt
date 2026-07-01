@@ -1,0 +1,34 @@
+# AI-HUB 后端 Python 依赖清单
+# 用法: pip install -r requirements.txt
+#
+# 建议在虚拟环境中安装：
+#   python3 -m venv .venv
+#   source .venv/bin/activate
+#   pip install -r requirements.txt
+#
+# 系统依赖（需额外安装）：
+#   - antiword: 用于解析旧版 .doc 文件。macOS: brew install antiword ；
+#     Ubuntu/Debian: sudo apt install antiword ；CentOS: sudo yum install antiword
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+sqlalchemy>=2.0.30
+aiomysql>=0.2.0
+pymysql>=1.1.0
+pydantic-settings>=2.3.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+bcrypt>=3.2.0,<4.1
+python-multipart>=0.0.9
+redis>=5.0.0
+httpx>=0.27.0
+alembic>=1.13.0
+arq>=0.26.0
+greenlet>=3.0.0
+olefile>=0.47
+PyPDF2>=3.0.1
+python-docx>=1.2.0
+openpyxl>=3.1.0
+langchain>=0.3.0
+langgraph>=0.2.0
+langchain-openai>=0.2.0

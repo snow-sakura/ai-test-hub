@@ -1,0 +1,170 @@
+// ============================================
+// 全局样式入口
+// 暖色主题（来自原型设计）
+// ============================================
+
+// Element Plus 主题色覆盖
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    'primary': (  // 主色调覆盖为暖色
+      'base': #C67B5C,
+    ),
+  ),
+);
+
+// 主题色 SCSS 变量
+$primary: #C67B5C;
+$primary-light: #D49472;
+$accent: #D4A574;
+$bg: #FBF7F0;
+$card-bg: #FFFDF9;
+$sidebar-bg: #F6F0E7;
+$text: #3D2E1F;
+$text-secondary: #5C4A38;
+$text-muted: #8B7355;
+
+:root {
+  // 自定义主题色 CSS 变量
+  --primary: #C67B5C;
+  --primary-light: #D49472;
+  --accent: #D4A574;
+  --bg: #FBF7F0;
+  --card-bg: #FFFDF9;
+  --sidebar-bg: #F6F0E7;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --topbar-height: 64px;
+  --text: #3D2E1F;
+  --text-secondary: #5C4A38;
+  --text-muted: #8B7355;
+  --border: 1px solid rgba(180, 150, 120, 0.12);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --font: system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  // Element Plus 主色调覆盖（通过 CSS 变量）
+  --el-color-primary: #C67B5C;
+  --el-color-primary-light-3: #D49472;
+  --el-color-primary-light-5: #E0B08E;
+  --el-color-primary-light-7: #EBCCB4;
+  --el-color-primary-light-8: #F0D9C8;
+  --el-color-primary-light-9: #F5E6DC;
+  --el-color-primary-dark-2: #A8624A;
+
+  // Element Plus 菜单主题
+  --el-menu-bg-color: #F6F0E7;
+  --el-menu-text-color: #5C4A38;
+  --el-menu-active-color: #C67B5C;
+  --el-menu-hover-bg-color: rgba(198, 123, 92, 0.08);
+  --el-menu-item-height: 48px;
+  --el-menu-item-font-size: 14px;
+
+  // Element Plus 边框与圆角
+  --el-border-color: rgba(180, 150, 120, 0.12);
+  --el-border-color-light: rgba(180, 150, 120, 0.08);
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+
+  // Element Plus 背景与文本色
+  --el-bg-color: #FBF7F0;
+  --el-bg-color-page: #FBF7F0;
+  --el-bg-color-overlay: #FFFDF9;
+  --el-text-color-primary: #3D2E1F;
+  --el-text-color-regular: #5C4A38;
+  --el-text-color-secondary: #8B7355;
+  --el-fill-color: #FFFDF9;
+  --el-fill-color-light: #FBF7F0;
+
+  // Element Plus 弹出层阴影
+  --el-box-shadow-light: 0 8px 24px rgba(60, 45, 30, 0.1);
+}
+
+// 全局重置
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: var(--font);
+  color: var(--text);
+  background-color: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--primary-light);
+  }
+}
+
+// 滚动条美化
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(180, 150, 120, 0.2);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(180, 150, 120, 0.35);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+// Element Plus el-menu 垂直模式自定义样式
+.el-menu--vertical {
+  border-right: none !important;
+}
+
+.el-menu-item {
+  border-radius: 0;
+  margin: 2px 0;
+
+  &:hover {
+    background-color: var(--el-menu-hover-bg-color) !important;
+  }
+
+  &.is-active {
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 20px;
+      background: var(--el-menu-active-color);
+      border-radius: 0 2px 2px 0;
+    }
+  }
+}
+
+// 过渡动画
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

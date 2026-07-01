@@ -1,0 +1,314 @@
+{
+  "summary": {
+    "total": 14,
+    "passed": 7,
+    "failed": 7,
+    "passRate": "50%",
+    "timestamp": "2026-06-30T08:34:31.186Z"
+  },
+  "results": [
+    {
+      "step": "登录",
+      "pass": true,
+      "detail": "跳转至 http://localhost:5173/home"
+    },
+    {
+      "step": "首页→AI智能测试",
+      "pass": true,
+      "detail": "http://localhost:5173/modules/aitest/dashboard"
+    },
+    {
+      "module": "测试总览",
+      "path": "/modules/aitest/dashboard",
+      "industryLogic": "测试总览应聚合项目/用例/成员/待评审等核心 KPI，并提供快速入口跳转至常用功能（行业标准：质量看板）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "项目总数|用例总数|成员总数|待评审",
+          "pass": true,
+          "found": "项目总数 用例总数 成员总数 待评审"
+        },
+        {
+          "check": "用例趋势|用例优先级分布|快速入口",
+          "pass": true,
+          "found": "用例趋势（近 7 天） 用例优先级分布 快速入口 最近活动"
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "测试总览.png",
+      "pass": true
+    },
+    {
+      "module": "项目管理",
+      "path": "/modules/aitest/projects",
+      "industryLogic": "项目管理是测试资产组织单元，应支持创建/搜索/状态筛选/批量操作（TestBrain、企业级AI Test平台标准）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": false,
+      "businessDetails": [
+        {
+          "check": "button:has-text(\"新建项目\")",
+          "pass": true
+        },
+        {
+          "check": ".filter-bar input[placeholder*=\"搜索\"]",
+          "pass": true
+        },
+        {
+          "check": ".el-table",
+          "pass": true
+        }
+      ],
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "项目管理.png",
+      "pass": false
+    },
+    {
+      "module": "用例列表",
+      "path": "/modules/aitest/testcases",
+      "industryLogic": "用例列表是测试设计核心资产库，应支持 CRUD、优先级/类型/状态筛选（结构化用例管理）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "button:has-text(\"新建用例\"), button:has-text(\"新建\")",
+          "pass": true
+        },
+        {
+          "check": ".el-table, .config-table-card",
+          "pass": true
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "用例列表.png",
+      "pass": true
+    },
+    {
+      "module": "用例评审",
+      "path": "/modules/aitest/review-cases",
+      "industryLogic": "用例评审用于质量门禁，应区分待评审/通过/驳回状态，支持人工+AI协同评审（行业：覆盖率与规范性检查）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "全部评审|待评审|已通过|已驳回",
+          "pass": true,
+          "found": "全部评审 待评审 已通过 已驳回"
+        },
+        {
+          "check": "button:has-text(\"新建评审\")",
+          "pass": true
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "用例评审.png",
+      "pass": true
+    },
+    {
+      "module": "AI用例生成",
+      "path": "/modules/aitest/generate",
+      "industryLogic": "AI用例生成应支持需求文本/文档输入、模型与提示词选择、自动评审选项（Spec2Case/TestBrain：需求→结构化用例）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "textarea, .el-textarea__inner",
+          "pass": true
+        },
+        {
+          "check": "button:has-text(\"开始生成\")",
+          "pass": true
+        },
+        {
+          "check": "需求输入|手动输入|上传文档|选择模型",
+          "pass": true,
+          "found": "\n    返回首页AI智能测试测试总览项目管理用例列表用例评审AI用例生成AI生成记录AI评测师测试报告AI模型配置AI提示词配置生成行为配置智能模式配置收起侧边栏AI用例生成 中文  English AadminAI 用例生成📄 需求输入手动输入需求上传文档拖拽文件到此处，或点击上传支持 PDF、Word、TXT、MD 格式选择文件DeepSeek V4 Flash (deepseek-v4-"
+        }
+      ],
+      "interactionDetails": {
+        "generateButtonEnabled": true
+      },
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "AI用例生成.png",
+      "pass": true
+    },
+    {
+      "module": "AI生成记录",
+      "path": "/modules/aitest/generate/records",
+      "industryLogic": "生成记录应追踪每次 AI 生成任务的状态、进度与结果，支持审计与回溯（多Agent协作平台标准）",
+      "uiPass": true,
+      "businessPass": true,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": ".el-table, .config-table-card, .page-wrap",
+          "pass": true
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "AI生成记录.png",
+      "pass": true
+    },
+    {
+      "module": "AI评测师",
+      "path": "/modules/aitest/ai-tester",
+      "industryLogic": "AI评测师是对话式测试助手，应支持多会话、模型切换、测试咨询与用例评审建议（质量数字人Agent）",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "会话历史|新建对话|AI 评测师|AI评测师",
+          "pass": true,
+          "found": "\n    返回首页AI智能测试测试总览项目管理用例列表用例评审AI用例生成AI生成记录AI评测师测试报告AI模型配置AI提示词配置生成行为配置智能模式配置收起侧边栏AI评测师 中文  English Aadmin\n    \n  \n\n 个人信息 设置 退出登录"
+        },
+        {
+          "check": "button:has-text(\"新建对话\"), button:has-text(\"+ 新建对话\")",
+          "pass": false
+        }
+      ],
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "AI评测师.png",
+      "pass": false
+    },
+    {
+      "module": "测试报告",
+      "path": "/modules/aitest/reports",
+      "industryLogic": "测试报告应汇总执行结果、缺陷分布与质量趋势，支持可视化分析（企业级平台：报告分析闭环）",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": ".page-wrap, .el-card",
+          "pass": false
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "测试报告.png",
+      "pass": false
+    },
+    {
+      "module": "AI模型配置",
+      "path": "/modules/aitest/config/model",
+      "industryLogic": "模型配置应管理 LLM 连接（API Key、Base URL、温度等），支持 writer/reviewer 等角色分工",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": "button:has-text(\"新增\"), button:has-text(\"新建\"), button:has-text(\"添加\")",
+          "pass": false
+        },
+        {
+          "check": ".el-table, .config-table-card",
+          "pass": false
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "AI模型配置.png",
+      "pass": false
+    },
+    {
+      "module": "AI提示词配置",
+      "path": "/modules/aitest/config/prompt",
+      "industryLogic": "提示词配置驱动 Prompt 工程，定义用例生成/评审规则（双驱动：Prompt + 领域知识库）",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": ".el-table, .config-table-card, .page-wrap",
+          "pass": false
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "AI提示词配置.png",
+      "pass": false
+    },
+    {
+      "module": "生成行为配置",
+      "path": "/modules/aitest/config/generation",
+      "industryLogic": "生成行为配置控制输出模式、自动评审开关、管线类型等传统/ LangGraph / AutoGen 编排",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": ".page-wrap, .el-form, .el-card",
+          "pass": false
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "生成行为配置.png",
+      "pass": false
+    },
+    {
+      "module": "智能模式配置",
+      "path": "/modules/aitest/config/mode",
+      "industryLogic": "智能模式配置定义 AI 自主测试策略（高/低信心场景的人机协作模式）",
+      "uiPass": true,
+      "businessPass": false,
+      "interactionPass": true,
+      "sidebarActive": true,
+      "pageTitleMatch": true,
+      "businessDetails": [
+        {
+          "check": ".page-wrap, .el-form, .el-card, .el-switch",
+          "pass": false
+        }
+      ],
+      "interactionDetails": null,
+      "consoleErrors": [],
+      "apiErrors": [],
+      "screenshot": "智能模式配置.png",
+      "pass": false
+    }
+  ]
+}
