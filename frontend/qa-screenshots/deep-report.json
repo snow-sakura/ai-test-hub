@@ -1,0 +1,344 @@
+{
+  "summary": {
+    "total": 12,
+    "passed": 4,
+    "failed": 8,
+    "passRate": "33%"
+  },
+  "results": [
+    {
+      "module": "测试总览",
+      "pass": true,
+      "checks": [
+        {
+          "name": "KPI卡片",
+          "pass": true
+        },
+        {
+          "name": "趋势图",
+          "pass": true
+        },
+        {
+          "name": "快速入口可点击",
+          "pass": true
+        },
+        {
+          "name": "快速入口跳转",
+          "pass": true
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "项目管理",
+      "pass": false,
+      "checks": [
+        {
+          "name": "页面标题",
+          "pass": true
+        },
+        {
+          "name": "新建项目按钮",
+          "pass": true
+        },
+        {
+          "name": "项目表格有数据",
+          "pass": true
+        },
+        {
+          "name": "搜索筛选",
+          "pass": true
+        },
+        {
+          "name": "状态筛选",
+          "pass": true
+        },
+        {
+          "name": "搜索过滤生效",
+          "pass": true
+        },
+        {
+          "name": "项目详情页跳转",
+          "pass": false
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "用例列表",
+      "pass": true,
+      "checks": [
+        {
+          "name": "用例表格",
+          "pass": true
+        },
+        {
+          "name": "新建用例",
+          "pass": true
+        },
+        {
+          "name": "用例数据",
+          "pass": true
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "用例评审",
+      "pass": true,
+      "checks": [
+        {
+          "name": "评审统计",
+          "pass": true
+        },
+        {
+          "name": "新建评审",
+          "pass": true
+        },
+        {
+          "name": "状态筛选",
+          "pass": true
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "AI用例生成",
+      "pass": false,
+      "checks": [
+        {
+          "name": "需求输入区",
+          "pass": true
+        },
+        {
+          "name": "文档上传区",
+          "pass": true
+        },
+        {
+          "name": "模型选择",
+          "pass": true
+        },
+        {
+          "name": "自动评审选项",
+          "pass": true
+        },
+        {
+          "name": "管线类型",
+          "pass": false
+        },
+        {
+          "name": "填写需求后生成按钮可用",
+          "pass": true
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "AI生成记录",
+      "pass": true,
+      "checks": [
+        {
+          "name": "记录列表",
+          "pass": true
+        },
+        {
+          "name": "有历史记录",
+          "pass": true
+        }
+      ],
+      "pageErrors": []
+    },
+    {
+      "module": "AI评测师",
+      "pass": false,
+      "checks": [
+        {
+          "name": "页面正常渲染",
+          "pass": false,
+          "note": ""
+        },
+        {
+          "name": "新建对话按钮",
+          "pass": false
+        },
+        {
+          "name": "模型选择器",
+          "pass": false
+        }
+      ],
+      "pageErrors": [
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')"
+      ]
+    },
+    {
+      "module": "测试报告",
+      "pass": false,
+      "checks": [],
+      "pageErrors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ],
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('button').filter({ hasText: '查看详情' }).first()\n"
+    },
+    {
+      "module": "AI模型配置",
+      "pass": false,
+      "checks": [
+        {
+          "name": "主操作按钮",
+          "pass": false
+        },
+        {
+          "name": "包含「writer」",
+          "pass": false
+        },
+        {
+          "name": "包含「reviewer」",
+          "pass": false
+        },
+        {
+          "name": "包含「测试连接」",
+          "pass": false
+        }
+      ],
+      "pageErrors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "AI提示词配置",
+      "pass": false,
+      "checks": [
+        {
+          "name": "主操作按钮",
+          "pass": false
+        },
+        {
+          "name": "包含「编写提示词」",
+          "pass": false
+        },
+        {
+          "name": "包含「评审」",
+          "pass": true
+        }
+      ],
+      "pageErrors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "生成行为配置",
+      "pass": false,
+      "checks": [
+        {
+          "name": "主操作按钮",
+          "pass": false
+        },
+        {
+          "name": "包含「启用 AI 评审」",
+          "pass": false
+        },
+        {
+          "name": "包含「默认输出模式」",
+          "pass": false
+        },
+        {
+          "name": "包含「评审超时」",
+          "pass": false
+        }
+      ],
+      "pageErrors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "智能模式配置",
+      "pass": false,
+      "checks": [
+        {
+          "name": "主操作按钮",
+          "pass": false
+        },
+        {
+          "name": "包含「启用 AI 模式」",
+          "pass": false
+        },
+        {
+          "name": "包含「自动触发策略」",
+          "pass": false
+        },
+        {
+          "name": "包含「通知设置」",
+          "pass": false
+        }
+      ],
+      "pageErrors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    }
+  ],
+  "bugs": [
+    {
+      "module": "AI评测师",
+      "errors": [
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')",
+        "Cannot read properties of undefined (reading 'label')"
+      ]
+    },
+    {
+      "module": "测试报告",
+      "errors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ],
+      "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('button').filter({ hasText: '查看详情' }).first()\n"
+    },
+    {
+      "module": "AI模型配置",
+      "errors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "AI提示词配置",
+      "errors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "生成行为配置",
+      "errors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    },
+    {
+      "module": "智能模式配置",
+      "errors": [
+        "Cannot read properties of null (reading 'parentNode')"
+      ]
+    }
+  ]
+}
