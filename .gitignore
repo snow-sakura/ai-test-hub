@@ -27,9 +27,17 @@ Thumbs.db
 # 项目工具
 .claude/
 .harness/
+.trae/
 
 # 日志
 *.log
 
 # 数据库
 *.sql.bak
+*.sqlite3
+
+# 上传文件
+backend/uploads/
+
+# TypeScript 构建缓存
+*.tsbuildinfo

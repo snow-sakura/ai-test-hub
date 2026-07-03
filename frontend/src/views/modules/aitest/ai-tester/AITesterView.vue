@@ -209,11 +209,11 @@ const currentSession = computed(() =>
   store.sessions.find(s => s.id === store.currentSessionId)
 )
 
+import { formatTime as _formatTime } from '@/utils'
+
 function formatTime(isoStr: string | null | undefined): string {
   if (!isoStr) return ''
-  const d = new Date(isoStr)
-  if (isNaN(d.getTime())) return ''
-  return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return _formatTime(isoStr)
 }
 
 function scrollToBottom() {

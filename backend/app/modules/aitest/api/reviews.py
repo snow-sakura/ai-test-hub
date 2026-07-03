@@ -5,19 +5,14 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.models.user import User
-from app.common.schemas.common import ResponseModel
+from app.common.schemas.common import ResponseModel, IdListRequest
 from app.database import get_db
 from app.deps import get_current_active_user
 
-
-class _IdListRequest(BaseModel):
-    """批量操作 ID 列表"""
-    ids: list[int]
 from app.modules.aitest.models.project import TestProject
 from app.modules.aitest.models.review import TestReview
 from app.modules.aitest.models.execution import TestCaseExecution
@@ -171,7 +166,7 @@ async def delete_review(
 
 @router.post("/batch-delete", response_model=ResponseModel)
 async def batch_delete_reviews(
-    body: _IdListRequest,
+    body: IdListRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):

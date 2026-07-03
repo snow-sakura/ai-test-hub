@@ -26,6 +26,8 @@ from app.modules.api_testing.api.projects import router as api_projects_router
 from app.modules.api_testing.api.testing import router as api_testing_router
 from app.modules.system_management.api.admin import router as admin_router
 from app.modules.config_center.api.configs import router as configs_router
+from app.modules.ai_chat.api.chat import router as ai_chat_router
+from app.modules.knowledge_base.api.kb import router as kb_router
 
 # v1 版本路由汇总
 api_v1_router = APIRouter()
@@ -57,3 +59,5 @@ api_v1_router.include_router(api_projects_router)
 api_v1_router.include_router(api_testing_router)
 api_v1_router.include_router(admin_router)
 api_v1_router.include_router(configs_router)
+api_v1_router.include_router(ai_chat_router)
+api_v1_router.include_router(kb_router)

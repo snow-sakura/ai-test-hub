@@ -306,12 +306,34 @@ async def reset_password(
     db: AsyncSession = Depends(get_db),
 ):
     """重置用户密码（管理员）"""
+    # 验证用户存在
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="用户不存在",
+        )
+
+    # 检查管理员权限：不能重置自己的密码，只能重置下属用户的密码
+    if user.id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="不能重置自己的密码",
+        )
+
+    # 检查目标用户是否为超级管理员
+    if user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="不能重置超级管理员的密码",
+        )
+
+    # 验证新密码强度
+    if len(body.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="新密码长度至少需要8位",
         )
 
     user.hashed_password = hash_password(body.password)

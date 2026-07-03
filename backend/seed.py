@@ -85,6 +85,7 @@ async def seed_model_configs():
         await db.commit()
         print("已创建默认 AI 模型配置：DeepSeek V4 Flash 编写模型 + 评审模型")
         print("   模型：deepseek-v4-flash | API Key 留空，由环境变量 DEEPSEEK_API_KEY 兜底")
+        print("   注意：请确保已设置环境变量 DEEPSEEK_API_KEY，否则模型将无法工作")
 
 
 async def init_data():

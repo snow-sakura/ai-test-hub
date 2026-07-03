@@ -347,9 +347,10 @@ const sourceLabel = computed(() => {
   return map[testCase.value.source || ''] || testCase.value.source
 })
 
+import { formatDate } from '@/utils'
+
 function formatTime(time: string | null | undefined): string {
-  if (!time) return '—'
-  return new Date(time).toLocaleDateString('zh-CN')
+  return formatDate(time)
 }
 
 function formatSize(bytes?: number): string {

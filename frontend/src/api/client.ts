@@ -126,9 +126,17 @@ client.interceptors.response.use(
 
     // 非 401 错误直接拒绝
     if (!originalRequest || status !== 401) {
+      const errData = error.response?.data as { detail?: string; message?: string } | undefined
+      const errMsg = errData?.detail || errData?.message || ''
       // 服务器错误提示
       if (status && status >= 500) {
-        ElMessage.error('服务器错误，请稍后重试')
+        const detail = errMsg || '服务器错误，请稍后重试'
+        console.error(`API Error [${status}]:`, error.response?.data)
+        ElMessage.error(detail)
+      } else if (status) {
+        const detail = errMsg || `请求失败 [${status}]`
+        console.error(`API Error [${status}]:`, error.response?.data)
+        ElMessage.error(detail)
       }
       return Promise.reject(error)
     }

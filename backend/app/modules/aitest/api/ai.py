@@ -56,6 +56,12 @@ from sqlalchemy import func as sql_func
 from pydantic import BaseModel, Field
 
 from app.modules.aitest.services.ai_service import AIService
+from app.modules.aitest.utils import (
+    compute_pass_rate,
+    compute_case_stats,
+    compute_module_stats,
+    compute_failed_cases,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -1023,13 +1029,8 @@ async def list_projects_for_ai(
 # ======================================================================
 # AI 测试报告
 # ======================================================================
-
-
-def _compute_pass_rate(passed: int, total: int) -> float:
-    """计算通过率，保留两位小数"""
-    if total <= 0:
-        return 0.0
-    return round(passed / total * 100, 2)
+# 报告相关（使用 utils 模块中的工具函数）
+# ======================================================================
 
 
 @router.get("/reports", response_model=PaginatedResponse)
@@ -1082,10 +1083,7 @@ async def list_ai_reports(
     reports: list[AIReportSummary] = []
     for task in tasks:
         cases = task.generated_test_cases
-        total_cases = len(cases)
-        passed = sum(1 for c in cases if c.status == 'approved')
-        failed = sum(1 for c in cases if c.status not in ('approved',))
-        blocked = sum(1 for c in cases if c.status == 'rejected')
+        stats = compute_case_stats(cases)
 
         # 获取项目名称
         project_name = ''
@@ -1102,11 +1100,11 @@ async def list_ai_reports(
             title=task.title,
             project_name=project_name,
             status=task.status,
-            total_cases=total_cases,
-            passed=passed,
-            failed=failed,
-            blocked=blocked,
-            pass_rate=_compute_pass_rate(passed, total_cases),
+            total_cases=stats['total'],
+            passed=stats['passed'],
+            failed=stats['failed'],
+            blocked=stats['blocked'],
+            pass_rate=stats['pass_rate'],
             created_at=str(task.created_at) if task.created_at else '',
         ))
 
@@ -1135,10 +1133,8 @@ async def get_report_detail(
     task = await _get_task_or_404(task_id, db)
     cases = task.generated_test_cases
 
-    total_cases = len(cases)
-    passed = sum(1 for c in cases if c.status == 'approved')
-    failed = sum(1 for c in cases if c.status not in ('approved',))
-    blocked = sum(1 for c in cases if c.status == 'rejected')
+    # 使用工具函数计算统计
+    stats = compute_case_stats(cases)
 
     # 获取项目名称
     project_name = ''
@@ -1150,26 +1146,8 @@ async def get_report_detail(
             project_name = proj.name
 
     # 模块分布统计
-    module_map: dict[str, dict] = {}
-    for c in cases:
-        mod = c.module or '未分类'
-        if mod not in module_map:
-            module_map[mod] = {'total': 0, 'passed': 0, 'failed': 0}
-        module_map[mod]['total'] += 1
-        if c.status == 'approved':
-            module_map[mod]['passed'] += 1
-        else:
-            module_map[mod]['failed'] += 1
-
     module_stats = [
-        ModuleStatItem(
-            module=mod,
-            total=data['total'],
-            passed=data['passed'],
-            failed=data['failed'],
-            pass_rate=_compute_pass_rate(data['passed'], data['total']),
-        )
-        for mod, data in sorted(module_map.items())
+        ModuleStatItem(**item) for item in compute_module_stats(cases)
     ]
 
     # 失败用例
@@ -1179,7 +1157,7 @@ async def get_report_detail(
             title=c.title,
             module=c.module or '',
             priority=c.priority,
-            reason=f"状态为「{c.status}」",  # 用当前状态作为失败原因说明
+            reason=f"状态为「{c.status}」",
             status=c.status,
         )
         for c in cases if c.status != 'approved'
@@ -1192,21 +1170,21 @@ async def get_report_detail(
         title=task.title,
         project_name=project_name,
         status=task.status,
-        total_cases=total_cases,
-        passed=passed,
-        failed=failed,
-        blocked=blocked,
-        pass_rate=_compute_pass_rate(passed, total_cases),
+        total_cases=stats['total'],
+        passed=stats['passed'],
+        failed=stats['failed'],
+        blocked=stats['blocked'],
+        pass_rate=stats['pass_rate'],
         created_at=str(task.created_at) if task.created_at else '',
     )
 
     # 统计数据
-    stats = AIReportStats(
-        total_cases=total_cases,
-        passed=passed,
-        failed=failed,
-        blocked=blocked,
-        pass_rate=_compute_pass_rate(passed, total_cases),
+    report_stats = AIReportStats(
+        total_cases=stats['total'],
+        passed=stats['passed'],
+        failed=stats['failed'],
+        blocked=stats['blocked'],
+        pass_rate=stats['pass_rate'],
         module_stats=module_stats,
         failed_cases=failed_cases,
     )
@@ -1219,7 +1197,7 @@ async def get_report_detail(
     return ResponseModel(
         data=AIReportDetail(
             summary=summary,
-            stats=stats,
+            stats=report_stats,
             cases=case_items,
         ),
     )
@@ -1239,34 +1217,9 @@ async def get_report_stats(
     task = await _get_task_or_404(task_id, db)
     cases = task.generated_test_cases
 
-    total_cases = len(cases)
-    passed = sum(1 for c in cases if c.status == 'approved')
-    failed = sum(1 for c in cases if c.status not in ('approved',))
-
-    # 模块分布
-    module_map: dict[str, dict] = {}
-    for c in cases:
-        mod = c.module or '未分类'
-        if mod not in module_map:
-            module_map[mod] = {'total': 0, 'passed': 0, 'failed': 0}
-        module_map[mod]['total'] += 1
-        if c.status == 'approved':
-            module_map[mod]['passed'] += 1
-        else:
-            module_map[mod]['failed'] += 1
-
-    module_stats = [
-        ModuleStatItem(
-            module=mod,
-            total=data['total'],
-            passed=data['passed'],
-            failed=data['failed'],
-            pass_rate=_compute_pass_rate(data['passed'], data['total']),
-        )
-        for mod, data in sorted(module_map.items())
-    ]
-
-    # 失败用例
+    # 使用工具函数计算统计
+    stats = compute_case_stats(cases)
+    module_stats = [ModuleStatItem(**item) for item in compute_module_stats(cases)]
     failed_cases = [
         FailedCaseItem(
             case_id=c.case_id,
@@ -1281,11 +1234,11 @@ async def get_report_stats(
 
     return ResponseModel(
         data=AIReportStats(
-            total_cases=total_cases,
-            passed=passed,
-            failed=failed,
-            blocked=sum(1 for c in cases if c.status == 'rejected'),
-            pass_rate=_compute_pass_rate(passed, total_cases),
+            total_cases=stats['total'],
+            passed=stats['passed'],
+            failed=stats['failed'],
+            blocked=stats['blocked'],
+            pass_rate=stats['pass_rate'],
             module_stats=module_stats,
             failed_cases=failed_cases,
         ),
@@ -1306,27 +1259,7 @@ async def get_report_module_stats(
     task = await _get_task_or_404(task_id, db)
     cases = task.generated_test_cases
 
-    module_map: dict[str, dict] = {}
-    for c in cases:
-        mod = c.module or '未分类'
-        if mod not in module_map:
-            module_map[mod] = {'total': 0, 'passed': 0, 'failed': 0}
-        module_map[mod]['total'] += 1
-        if c.status == 'approved':
-            module_map[mod]['passed'] += 1
-        else:
-            module_map[mod]['failed'] += 1
-
-    module_stats = [
-        ModuleStatItem(
-            module=mod,
-            total=data['total'],
-            passed=data['passed'],
-            failed=data['failed'],
-            pass_rate=_compute_pass_rate(data['passed'], data['total']),
-        )
-        for mod, data in sorted(module_map.items())
-    ]
+    module_stats = [ModuleStatItem(**item) for item in compute_module_stats(cases)]
 
     return ResponseModel(data=module_stats)
 

@@ -12,13 +12,13 @@ class Settings(BaseSettings):
     """应用配置类，所有配置项从环境变量读取"""
 
     # ---------- 数据库 ----------
-    DATABASE_URL: str = "mysql+aiomysql://snow:Wxh123456!@localhost:3306/ai_hub_test"
+    DATABASE_URL: str = ""
 
     # ---------- Redis ----------
-    REDIS_URL: str = "redis://:redis123@localhost:6379/0"
+    REDIS_URL: str = ""
 
     # ---------- JWT 认证 ----------
-    SECRET_KEY: str = "ai-hub-secret-key-change-in-production"
+    SECRET_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 

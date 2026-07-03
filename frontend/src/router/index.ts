@@ -254,19 +254,19 @@ const routes: RouteRecordRaw[] = [
         ],
       },
 
-      // ---- AI 聊天室（预留）----
+      // ---- AI 聊天室 ----
       {
         path: 'ai-chat',
         name: 'AiChat',
-        component: Placeholder,
+        component: () => import('@/views/modules/ai-chat/ChatView.vue'),
         meta: { module: 'ai-chat', requiresAuth: true, title: 'AI聊天室' },
       },
 
-      // ---- 知识库（预留）----
+      // ---- 知识库 ----
       {
         path: 'knowledge-base',
         name: 'KnowledgeBase',
-        component: Placeholder,
+        component: () => import('@/views/modules/knowledge-base/KnowledgeBaseView.vue'),
         meta: { module: 'knowledge-base', requiresAuth: true, title: '知识库' },
       },
 

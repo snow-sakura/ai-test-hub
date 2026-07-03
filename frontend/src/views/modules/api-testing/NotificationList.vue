@@ -148,11 +148,12 @@ function notifTypeClass(type: string): string {
   return map[type] || 'info'
 }
 
+import { formatDateTime } from '@/utils'
+
 function formatTime(timeStr: string): string {
   if (!timeStr) return '-'
   try {
-    const d = new Date(timeStr)
-    return d.toLocaleString('zh-CN')
+    return formatDateTime(timeStr)
   } catch {
     return timeStr
   }
