@@ -7,7 +7,6 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 from sqlalchemy import select, update
@@ -29,11 +28,7 @@ from app.modules.config_center.schemas.config import (
     GenerationConfigDetail,
     GenerationConfigUpdate,
 )
-from app.common.schemas.common import ResponseModel
-
-class _IdListRequest(BaseModel):
-    """批量操作 ID 列表"""
-    ids: list[int]
+from app.common.schemas.common import ResponseModel, IdListRequest
 
 router = APIRouter(prefix="/api/v1/configs", tags=["配置中心"])
 
@@ -144,7 +139,7 @@ async def delete_ai_model(
 
 @router.post("/models/batch-delete", response_model=ResponseModel)
 async def batch_delete_ai_models(
-    body: _IdListRequest,
+    body: IdListRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -277,7 +272,7 @@ async def delete_prompt_config(
 
 @router.post("/prompts/batch-delete", response_model=ResponseModel)
 async def batch_delete_prompt_configs(
-    body: _IdListRequest,
+    body: IdListRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):

@@ -618,10 +618,10 @@ function versionLabel(status?: string): string {
   const o = VERSION_STATUS_OPTIONS.find(v => v.value === status)
   return o?.label || status || '—'
 }
+import { formatDate } from '@/utils'
+
 function formatTime(t?: string | null): string {
-  if (!t) return '—'
-  const d = new Date(t)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return formatDate(t)
 }
 
 onMounted(loadData)

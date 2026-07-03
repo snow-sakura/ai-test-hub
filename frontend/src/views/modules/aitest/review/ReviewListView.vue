@@ -206,15 +206,12 @@ function reviewStatusLabel(status: string): string {
   return opt?.label || status
 }
 
+import { formatDateTime } from '@/utils'
+
 /** 格式化日期时间 YYYY-MM-DD HH:mm */
 function formatTime(time: string): string {
   if (!time) return '-'
-  const d = new Date(time)
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  const h = String(d.getHours()).padStart(2, '0')
-  const min = String(d.getMinutes()).padStart(2, '0')
-  return `${d.getFullYear()}-${m}-${day} ${h}:${min}`
+  return formatDateTime(time)
 }
 
 // ==================== 数据加载 ====================

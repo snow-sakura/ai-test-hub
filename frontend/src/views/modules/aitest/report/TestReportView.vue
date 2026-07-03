@@ -355,20 +355,15 @@ const maxModuleTotal = computed(() => {
 // 方法
 // ======================================================================
 
+import { formatDateTime } from '@/utils'
+
 /**
  * 格式化时间
  */
 function formatTime(t: string): string {
   if (!t) return '-'
   try {
-    const d = new Date(t)
-    return d.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
+    return formatDateTime(t)
   } catch {
     return t
   }

@@ -218,13 +218,14 @@ function handleToggleCollapse() {
   appStore.toggleSidebar()
 }
 
-/** 响应式：窗口宽度小于 768px 时折叠侧边栏 */
+/** 响应式：窗口宽度小于 768px 时标记为移动端 */
 function handleResize() {
+  const wasMobile = isMobile.value
   isMobile.value = window.innerWidth < 768
-  if (window.innerWidth < 768) {
-    if (!appStore.sidebarCollapsed) {
-      appStore.sidebarCollapsed = true
-    }
+  
+  // 仅在首次进入移动端时自动折叠，不强制阻止展开
+  if (isMobile.value && !wasMobile) {
+    appStore.sidebarCollapsed = true
   }
 }
 

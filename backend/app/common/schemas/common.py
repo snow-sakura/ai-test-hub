@@ -6,7 +6,7 @@
 
 from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 T = TypeVar("T")
 
@@ -33,3 +33,9 @@ class PaginatedResponse(ResponseModel):
 
     data: list[Any] = []
     pagination: PaginationMeta
+
+
+class IdListRequest(BaseModel):
+    """批量操作 ID 列表请求体"""
+
+    ids: list[int] = Field(..., description="ID 列表", min_length=1)

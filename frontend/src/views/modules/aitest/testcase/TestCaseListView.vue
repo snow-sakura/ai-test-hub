@@ -818,14 +818,11 @@ async function handleReviewSubmit() {
   }
 }
 
+import { formatDate } from '@/utils'
+
 /** 格式化时间到日期 YYYY-MM-DD */
 function formatTime(time: string | null | undefined): string {
-  if (!time) return '-'
-  const d = new Date(time)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return formatDate(time) === '—' ? '-' : formatDate(time)
 }
 
 // ==================== 导入导出 ====================

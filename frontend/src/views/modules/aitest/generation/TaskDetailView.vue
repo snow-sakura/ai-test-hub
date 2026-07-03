@@ -170,10 +170,10 @@ const selectAll = computed({
 })
 const isIndeterminate = computed(() => selectedIds.value.length > 0 && selectedIds.value.length < candidateCases.value.length)
 
+import { formatDate } from '@/utils'
+
 function formatTime(t: string | null | undefined): string {
-  if (!t) return '—'
-  const d = new Date(t)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return formatDate(t)
 }
 
 function statusLabel(s: string): string {

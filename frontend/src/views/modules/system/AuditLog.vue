@@ -270,10 +270,12 @@ function resetFilter() {
   loadLogs()
 }
 
+import { formatDateTime } from '@/utils'
+
 /** 格式化时间 */
 function formatTime(time?: string): string {
   if (!time) return '-'
-  return time.replace('T', ' ').substring(0, 19)
+  return formatDateTime(time)
 }
 
 /** 操作类型映射为中文 */

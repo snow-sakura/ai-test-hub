@@ -397,10 +397,12 @@ function avatarColor(name: string): string {
   return colors[index]
 }
 
+import { formatDateTime } from '@/utils'
+
 /** 格式化时间 */
 function formatTime(time?: string): string {
   if (!time) return '-'
-  return time.replace('T', ' ').substring(0, 19)
+  return formatDateTime(time)
 }
 
 /** 打开创建对话框 */

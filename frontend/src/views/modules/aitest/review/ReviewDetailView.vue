@@ -336,10 +336,10 @@ function executionTagLabel(status: string): string {
   return map[status] || status
 }
 
+import { formatDate } from '@/utils'
+
 function formatTime(time: string | null | undefined): string {
-  if (!time) return '—'
-  const d = new Date(time)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return formatDate(time)
 }
 
 async function loadData() {

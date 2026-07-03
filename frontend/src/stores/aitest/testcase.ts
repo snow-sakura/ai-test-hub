@@ -34,7 +34,8 @@ export const useTestCaseStore = defineStore('aitest-testcase', () => {
       if (filters.value.search) params.search = filters.value.search
       const res = await aitestApi.listTestCases(params)
       cases.value = res.data || []
-      total.value = (res.data || []).length
+      // 后端返回分页响应时使用 pagination.total，否则使用数组长度
+      total.value = (res as any).pagination?.total ?? (res.data || []).length
     } catch (e) {
       console.error('获取用例列表失败:', e)
     } finally {

@@ -5,19 +5,14 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.models.user import User
-from app.common.schemas.common import PaginatedResponse, ResponseModel
+from app.common.schemas.common import PaginatedResponse, ResponseModel, IdListRequest
 from app.database import get_db
 from app.deps import get_current_active_user
 
-
-class _IdListRequest(BaseModel):
-    """批量操作 ID 列表"""
-    ids: list[int]
 from app.modules.aitest.models.project import ProjectMember, TestProject
 from sqlalchemy import delete as sa_delete
 from app.modules.aitest.schemas.test_project import (
@@ -175,7 +170,7 @@ async def delete_project(
 
 @router.post("/batch-delete", response_model=ResponseModel)
 async def batch_delete_projects(
-    body: _IdListRequest,
+    body: IdListRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
@@ -430,7 +425,7 @@ async def remove_member(
 @router.post("/{project_id}/batch-remove-members", response_model=ResponseModel)
 async def batch_remove_members(
     project_id: int,
-    body: _IdListRequest,
+    body: IdListRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ):
