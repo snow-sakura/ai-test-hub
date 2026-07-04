@@ -4,8 +4,14 @@
     左侧显示当前页面标题，右侧提供语言切换和用户下拉菜单
   -->
   <header class="topbar">
-    <!-- 左侧：侧边栏展开按钮（小屏幕用）+ 页面标题 -->
+    <!-- 左侧：返回首页 + 侧边栏展开按钮（小屏幕用）+ 页面标题 -->
     <div class="topbar-left">
+      <!-- 返回首页 -->
+      <router-link to="/home" class="back-home-btn" title="返回首页">
+        <el-icon :size="16"><HomeFilled /></el-icon>
+        <span class="back-home-text">首页</span>
+      </router-link>
+
       <!-- 移动端菜单展开按钮 -->
       <el-button
         class="menu-toggle-btn"
@@ -200,6 +206,27 @@ async function handleUserCommand(command: string) {
   @media (max-width: 768px) {
     display: flex;
   }
+}
+
+.back-home-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.back-home-btn:hover {
+  background: rgba(198, 123, 92, 0.1);
+  color: var(--primary);
+}
+
+.back-home-text {
+  font-size: 14px;
 }
 
 .page-title {

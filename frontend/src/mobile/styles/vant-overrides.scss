@@ -1,0 +1,71 @@
+// Vant 组件样式深度覆盖 — 基于暖色主题
+// 这里只覆盖全局性样式，组件级样式在各页面中处理
+
+// ====== NavBar ======
+.van-nav-bar {
+  background: var(--van-background) !important;
+  border-bottom: 1px solid var(--van-border-color) !important;
+  --van-nav-bar-height: 46px;
+
+  &__title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--van-text-color) !important;
+  }
+}
+
+// ====== TabBar ======
+.van-tabbar {
+  background: var(--van-background-2) !important;
+  border-top: 1px solid var(--van-border-color) !important;
+
+  &--fixed {
+    box-shadow: 0 -2px 8px rgba(180, 150, 120, 0.06);
+  }
+}
+
+// ====== Button ======
+.van-button--primary {
+  background: linear-gradient(135deg, #C67B5C 0%, #D49472 100%) !important;
+  border: none !important;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+// ====== Cell ======
+.van-cell {
+  background: var(--van-background-2) !important;
+}
+
+// ====== Card / Panel ======
+.van-panel {
+  background: var(--van-background-2) !important;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+// ====== Dialog ======
+.van-dialog {
+  border-radius: 12px !important;
+  --van-dialog-header-font-weight: 600;
+}
+
+// ====== Toast ======
+.van-toast {
+  border-radius: 8px !important;
+}
+
+// ====== Field ======
+.van-field {
+  --van-field-label-color: var(--van-text-color-2);
+}
+
+// ====== PullRefresh ======
+.van-pull-refresh__text {
+  color: var(--van-text-color-3);
+}
+
+// ====== NavBar 返回箭头颜色 ======
+.van-icon-arrow-left {
+  color: var(--van-text-color) !important;
+}

@@ -11,6 +11,8 @@ from starlette import status
 
 from app.deps import get_current_user, get_db
 from app.common.models.user import User
+from app.database import async_session_factory
+from app.modules.ai_chat.models.chat_message import ChatMessage
 
 logger = logging.getLogger(__name__)
 from app.modules.ai_chat.schemas.chat import (
@@ -201,6 +203,21 @@ async def upload_message_file(
     )
 
 
+async def _save_assistant_message(session_id: int, content: str) -> int | None:
+    """后台保存助手消息（独立 session，不依赖请求生命周期），返回消息 ID"""
+    async with async_session_factory() as session:
+        try:
+            message = ChatMessage(session_id=session_id, role="assistant", content=content)
+            session.add(message)
+            await session.commit()
+            logger.info("助手消息已保存: session_id=%d, len=%d", session_id, len(content))
+            return message.id
+        except Exception as e:
+            logger.error("保存助手消息失败: %s", str(e), exc_info=True)
+            await session.rollback()
+            return None
+
+
 @router.post("/sessions/{session_id}/messages/stream")
 async def stream_message(
     session_id: int,
@@ -211,6 +228,7 @@ async def stream_message(
     """发送消息（流式响应）"""
 
     async def event_generator():
+        assistant_content = ""
         try:
             user_message = await create_message(db, session_id, "user", body.content, body.file_ids)
 
@@ -221,22 +239,21 @@ async def stream_message(
 
             yield f"data: {json.dumps({'type': 'user_message', 'message': {'id': user_message.id, 'content': body.content}})}\n\n"
 
-            assistant_content = ""
             async for event_type, data in stream_chat_response(
-                session_id, body.content, body.model, db, current_user, body.knowledge_base_id
+                session_id, body.content, body.model, db, current_user, body.knowledge_base_id, body.file_ids
             ):
                 if event_type == "token":
                     assistant_content += data
                     yield f"data: {json.dumps({'type': 'token', 'content': data})}\n\n"
-                elif event_type == "complete":
-                    yield f"data: {json.dumps({'type': 'complete', 'content': assistant_content})}\n\n"
-
-            yield "data: [DONE]\n\n"
-            await create_message(db, session_id, "assistant", assistant_content)
         except Exception as e:
-            # 记录完整错误日志到服务端，但不返回 traceback 给前端（安全考虑）
             logger.error("聊天流式响应异常: %s", str(e), exc_info=True)
             yield f"data: {json.dumps({'type': 'error', 'message': '服务异常，请稍后重试'})}\n\n"
+
+        # 流结束后用独立 session 保存助手消息（不依赖请求的 db session）
+        if assistant_content:
+            message_id = await _save_assistant_message(session_id, assistant_content)
+            yield f"data: {json.dumps({'type': 'complete', 'content': assistant_content, 'message_id': message_id})}\n\n"
+        yield "data: [DONE]\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream", headers={
         "Cache-Control": "no-cache",

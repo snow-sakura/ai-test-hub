@@ -1,0 +1,121 @@
+// 移动端全局样式
+@use './variables' as *;
+
+// ====== 全局 Reset ======
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: $font-family;
+  font-size: 14px;
+  color: $text;
+  background: $bg;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  // 防止 iOS 弹性滚动
+  -webkit-overflow-scrolling: touch;
+  // 禁止长按菜单
+  -webkit-touch-callout: none;
+  // 禁止文本选择（可选）
+  // -webkit-user-select: none;
+  // user-select: none;
+}
+
+#app {
+  height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+// ====== 滚动条美化 ======
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+// ====== 安全区域适配 ======
+.safe-area-bottom {
+  padding-bottom: $safe-area-bottom;
+}
+
+// ====== 通用页面容器 ======
+.page {
+  min-height: 100%;
+  padding: $page-padding;
+  background: $bg;
+}
+
+// ====== 卡片 ======
+.card {
+  background: $card-bg;
+  border-radius: $radius-lg;
+  padding: 16px;
+  margin-bottom: $gap;
+  border: 1px solid $border-color;
+}
+
+// ====== 列表项标题 ======
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text;
+  margin-bottom: $gap;
+}
+
+// ====== 文本省略 ======
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ====== Flex 工具 ======
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// ====== Vant 主题覆盖 ======
+:root {
+  --van-primary-color: #{$primary};
+  --van-primary-light: #{$primary-light};
+  --van-text-color: #{$text};
+  --van-text-color-2: #{$text-secondary};
+  --van-text-color-3: #{$text-muted};
+  --van-background: #{$bg};
+  --van-background-2: #{$card-bg};
+  --van-border-color: #{$border-color};
+  --van-button-primary-background: #{$primary};
+  --van-button-primary-border-color: #{$primary};
+  --van-tabbar-item-active-color: #{$primary};
+  --van-nav-bar-icon-color: #{$text};
+  --van-nav-bar-text-color: #{$text};
+  --van-search-background: #{$card-bg};
+  --van-toast-background: rgba(61, 46, 31, 0.85);
+  --van-toast-text-color: #fff;
+  --van-popup-round-radius: 16px;
+  --van-dialog-round-radius: 12px;
+  --van-dialog-confirm-button-font-size: 15px;
+}

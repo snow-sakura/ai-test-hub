@@ -5,6 +5,7 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -135,9 +136,9 @@ async def update_project(
         setattr(project, field, value)
 
     await db.flush()
-    await db.refresh(project)
-    project.member_count = len(project.members) if hasattr(project, "members") else 0
-    project.version_count = len(project.versions) if hasattr(project, "versions") else 0
+
+    # 重新查询获取带计数的项目（避免 async 懒加载 members/versions 关系）
+    project = await get_project_with_counts(db, project_id)
     return ResponseModel(data=TestProjectResponse.model_validate(project))
 
 

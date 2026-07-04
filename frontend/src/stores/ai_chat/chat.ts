@@ -10,14 +10,13 @@ export const useChatStore = defineStore('chat', () => {
   const knowledgeBases = ref<KnowledgeBase[]>([])
   const selectedKnowledgeBaseId = ref<number | null>(null)
   const isStreaming = ref(false)
-  const selectedModel = ref('qwen:qwen3.7-max')
+  const selectedModel = ref('opencode:mimo-v2.5-free')
   let currentAbort: (() => void) | null = null
 
   const modelOptions = computed(() => [
+    { label: 'OpenCode MiMo V2.5 Free', value: 'opencode:mimo-v2.5-free' },
     { label: 'Qwen3.7-Max', value: 'qwen:qwen3.7-max' },
     { label: 'DeepSeek V4 Flash', value: 'deepseek:deepseek-v4-flash' },
-    { label: 'GPT-4.1', value: 'openai:gpt-4.1' },
-    { label: 'Claude Sonnet 4.6', value: 'anthropic:claude-sonnet-4-6' },
   ])
 
   async function loadSessions() {
@@ -44,7 +43,7 @@ export const useChatStore = defineStore('chat', () => {
     abortCurrentRequest()
     currentSession.value = session
     messages.value = await aiChatApi.messages.list(session.id)
-    selectedModel.value = session.model || 'qwen:qwen3.7-max'
+    selectedModel.value = session.model || 'opencode:mimo-v2.5-free'
     selectedKnowledgeBaseId.value = session.knowledge_base_id || null
   }
 
@@ -68,7 +67,7 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  function sendMessage(content: string, fileIds: number[] = [], onChunk: (data: string) => void, onError: (error: Error) => void): void {
+  function sendMessage(content: string, fileIds: number[] = [], onChunk: (data: string) => void | Promise<void>, onError: (error: Error) => void): void {
     if (!currentSession.value) {
       throw new Error('No current session')
     }
@@ -103,6 +102,13 @@ export const useChatStore = defineStore('chat', () => {
     const message = messages.value.find((m) => m.id === messageId)
     if (message) {
       message.content = content
+    }
+  }
+
+  function replaceMessageId(oldId: number, newId: number) {
+    const message = messages.value.find((m) => m.id === oldId)
+    if (message) {
+      message.id = newId
     }
   }
 
@@ -154,6 +160,7 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     abortCurrentRequest,
     addMessage,
+    replaceMessageId,
     updateMessageContent,
     rateMessage,
     uploadFile,

@@ -124,6 +124,13 @@ client.interceptors.response.use(
     const originalRequest = error.config as CustomAxiosConfig | undefined
     const status = error.response?.status
 
+    // 网络连接失败（无 response）
+    if (!error.response) {
+      console.error('[API] 网络请求失败:', error.message, error.config?.url)
+      ElMessage.error('网络连接失败，请检查后端服务是否启动')
+      return Promise.reject(error)
+    }
+
     // 非 401 错误直接拒绝
     if (!originalRequest || status !== 401) {
       const errData = error.response?.data as { detail?: string; message?: string } | undefined

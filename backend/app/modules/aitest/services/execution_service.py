@@ -58,6 +58,7 @@ async def get_latest_execution(
     """获取用例最新执行结果"""
     result = await db.execute(
         select(TestCaseExecution)
+        .options(joinedload(TestCaseExecution.executor))
         .where(TestCaseExecution.case_id == case_id)
         .order_by(TestCaseExecution.id.desc())
         .limit(1),

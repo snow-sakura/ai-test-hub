@@ -6,7 +6,7 @@
   -->
   <div
     class="module-layout"
-    :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed }"
+    :class="{ 'sidebar-collapsed': appStore.sidebarCollapsed, 'hide-module-sidebar': isAiChat }"
   >
     <!-- 侧边栏 -->
     <aside
@@ -196,6 +196,9 @@ const isMobile = ref(false)
 const currentModule = computed(() => {
   return route.meta?.module as string | undefined
 })
+
+/** AI 聊天模块：隐藏空的模块侧边栏 */
+const isAiChat = computed(() => currentModule.value === 'ai-chat')
 
 /** 当前模块的侧边栏配置 */
 const currentModuleConfig = computed<ModuleSidebarConfig | undefined>(() => {
@@ -439,5 +442,13 @@ onUnmounted(() => {
   .layout-right {
     margin-left: 0 !important;
   }
+}
+
+// AI 聊天模块：隐藏空的模块侧边栏
+.hide-module-sidebar .sidebar {
+  display: none;
+}
+.hide-module-sidebar .layout-right {
+  margin-left: 0 !important;
 }
 </style>

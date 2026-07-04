@@ -1,0 +1,38 @@
+// 移动端设计变量 — 复用桌面端暖色主题体系
+// 颜色值与桌面端保持一致，确保品牌统一
+
+// ====== 品牌色 ======
+$primary: #C67B5C;
+$primary-light: #D49472;
+$accent: #D4A574;
+
+// ====== 背景色 ======
+$bg: #FBF7F0;
+$card-bg: #FFFDF9;
+$sidebar-bg: #F6F0E7;
+
+// ====== 文本色 ======
+$text: #3D2E1F;
+$text-secondary: #5C4A38;
+$text-muted: #8B7355;
+
+// ====== 边框/分割 ======
+$border-color: rgba(180, 150, 120, 0.12);
+
+// ====== 圆角 ======
+$radius: 8px;
+$radius-lg: 12px;
+$radius-sm: 6px;
+
+// ====== 间距（移动端基准） ======
+$page-padding: 16px;
+$gap: 12px;
+$gap-sm: 8px;
+
+// ====== 字体 ======
+$font-family: system-ui, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+// ====== 布局 ======
+$topbar-height: 46px;
+$tabbar-height: 50px;
+$safe-area-bottom: env(safe-area-inset-bottom, 0px);

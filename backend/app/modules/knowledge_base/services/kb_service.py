@@ -175,6 +175,9 @@ async def upload_kb_document(
 
     await process_kb_document(db, document)
 
+    # process_kb_document 内部 commit 后属性过期，必须重新查询获取最新数据
+    await db.refresh(document)
+
     return document
 
 

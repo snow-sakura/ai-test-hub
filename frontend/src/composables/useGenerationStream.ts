@@ -13,7 +13,7 @@ import { ref, onUnmounted } from 'vue'
 /** 生成阶段标签 */
 export const STAGE_LABELS: Record<string, string> = {
   analyze: '需求分析',
-  write: '用例编写',
+  writing: '用例编写',
   review: 'AI 评审',
   revise: '修订完善',
   complete: '生成完成',
@@ -22,7 +22,7 @@ export const STAGE_LABELS: Record<string, string> = {
 /** 阶段图标颜色 */
 export const STAGE_COLORS: Record<string, string> = {
   analyze: '#1890FF',
-  write: '#52C41A',
+  writing: '#52C41A',
   review: '#FAAD14',
   revise: '#FF7A00',
   complete: '#722ED1',
@@ -75,7 +75,7 @@ export function useGenerationStream() {
   const currentStage = ref('')
   const stageContents = ref<Record<string, string>>({
     analyze: '',
-    write: '',
+    writing: '',
     review: '',
     revise: '',
   })
@@ -134,7 +134,7 @@ export function useGenerationStream() {
     doneResult.value = null
     reviewResult.value = null
     currentStage.value = ''
-    stageContents.value = { analyze: '', write: '', review: '', revise: '' }
+    stageContents.value = { analyze: '', writing: '', review: '', revise: '' }
     progress.value = { current: 0, total: 0, message: '' }
 
     isManuallyClosed = false
@@ -223,7 +223,7 @@ export function useGenerationStream() {
     doneResult.value = null
     reviewResult.value = null
     currentStage.value = ''
-    stageContents.value = { analyze: '', write: '', review: '', revise: '' }
+    stageContents.value = { analyze: '', writing: '', review: '', revise: '' }
     progress.value = { current: 0, total: 0, message: '' }
   }
 
