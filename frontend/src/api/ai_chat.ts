@@ -26,7 +26,7 @@ export const aiChatApi = {
     list(sessionId: number) {
       return client.get(`${BASE_URL}/ai-chat/sessions/${sessionId}/messages`).then((res) => res.data)
     },
-    stream(sessionId: number, body: ChatMessageBody, onChunk: (data: string) => void, onError: (error: Error) => void, onComplete?: () => void): { abort: () => void } {
+    stream(sessionId: number, body: ChatMessageBody, onChunk: (data: string) => void | Promise<void>, onError: (error: Error) => void, onComplete?: () => void): { abort: () => void } {
       const token = localStorage.getItem('access_token')
       const controller = new AbortController()
 
@@ -47,7 +47,10 @@ export const aiChatApi = {
             try {
               const json = await response.json()
               if (json.detail) {
-                errorMessage = json.detail
+                // FastAPI 验证错误 detail 是数组，需序列化为字符串
+                errorMessage = typeof json.detail === 'string'
+                  ? json.detail
+                  : JSON.stringify(json.detail)
               }
             } catch {}
             throw new Error(errorMessage)
@@ -58,8 +61,10 @@ export const aiChatApi = {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
-            onChunk(decoder.decode(value))
+            await onChunk(decoder.decode(value))
           }
+          // 刷新 buffer 中残留的数据（如 [DONE] 信号）
+          await onChunk('')
         } catch (error: any) {
           if (!controller.signal.aborted) {
             onError(error as Error)

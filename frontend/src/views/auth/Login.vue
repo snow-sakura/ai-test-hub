@@ -237,6 +237,7 @@ async function handleLogin(): Promise<void> {
     router.push('/home')
   } catch (err: any) {
     const detail = err?.response?.data?.detail
+    console.error('[登录失败]', detail || err.message || err)
     ElMessage.error(detail || '登录失败，请稍后重试')
   } finally {
     loading.value = false
@@ -267,6 +268,7 @@ async function handleRegister(): Promise<void> {
     loginForm.password = ''
   } catch (err: any) {
     const detail = err?.response?.data?.detail
+    console.error('[注册失败]', detail || err.message || err)
     ElMessage.error(detail || '注册失败，请稍后重试')
   } finally {
     loading.value = false

@@ -3,11 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>AI-HUB</title>
   </head>
   <body>
     <div id="app"></div>
-    <script type="module" src="/src/main.ts"></script>
+    <!--
+      设备检测：移动端加载 mobile 子应用，桌面端加载 web 子应用
+      通过动态 import 实现运行时切换，打包后两套代码在同一产物中
+    -->
+    <script type="module">
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+        || window.innerWidth < 768;
+      window.__IS_MOBILE__ = isMobile;
+      if (isMobile) {
+        import('/src/mobile/main.ts');
+      } else {
+        import('/src/main.ts');
+      }
+    </script>
   </body>
 </html>

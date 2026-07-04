@@ -1,0 +1,6 @@
+<template>
+  <div class="page">
+    <van-empty description="知识库 - 阶段 5 实现" image="search" />
+  </div>
+</template>
+<script setup lang="ts"></script>

@@ -185,7 +185,7 @@ import type { AITesterSession } from '@/types/aitest'
 const store = useAITesterStore()
 
 const inputText = ref('')
-const selectedModel = ref('qwen:qwen3.7-max')
+const selectedModel = ref('other:opencode/mimo-v2-pro-free')
 const messageContainerRef = ref<HTMLElement | null>(null)
 const showRenameModal = ref(false)
 const renameText = ref('')
@@ -196,10 +196,9 @@ const abortController = ref<AbortController | null>(null)
 
 const modelOptions = computed(() => {
   return [
+    { label: 'OpenCode Mimo V2 Pro', value: 'other:opencode/mimo-v2-pro-free' },
     { label: 'Qwen3.7-Max', value: 'qwen:qwen3.7-max' },
     { label: 'DeepSeek V4 Flash', value: 'deepseek:deepseek-v4-flash' },
-    { label: 'GPT-4.1', value: 'openai:gpt-4.1' },
-    { label: 'Claude Sonnet 4.6', value: 'anthropic:claude-sonnet-4-6' },
   ]
 })
 

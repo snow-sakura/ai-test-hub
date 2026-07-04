@@ -14,8 +14,8 @@
 | API 接口测试 | 项目管理、接口管理、自动化测试套件 | 🔧 开发中 |
 | UI 自动化 | 元素管理、脚本生成、套件执行 | 📋 计划中 |
 | APP 自动化 | 设备管理、用例编排、执行记录 | 📋 计划中 |
-| AI 聊天室 | 多会话流式对话、上下文管理 | 📋 计划中 |
-| 知识库 | 文档上传切片、RAG 搜索 | 📋 计划中 |
+| AI 聊天室 | 多会话流式对话、上下文管理、Markdown渲染 | ✅ 已完成 |
+| 知识库 | 文档上传切片、RAG 搜索 | ✅ 已完成 |
 
 ## 技术栈
 
@@ -129,7 +129,8 @@ ai-test-hub/
 | `DATABASE_URL` | MySQL 连接串 | `mysql+aiomysql://snow:Wxh123456!@localhost:3306/ai_hub_test` |
 | `REDIS_URL` | Redis 连接串 | `redis://:redis123@localhost:6379/0` |
 | `SECRET_KEY` | JWT 签名密钥 | 随机字符串 |
-| `DEEPSEEK_API_KEY` | DeepSeek API Key | 用于 AI 生成 |
+| `QWEN_API_KEY` | 阿里云百炼千问 API Key | 用于 AI 生成（默认） |
+| `DEEPSEEK_API_KEY` | DeepSeek API Key | 用于 AI 生成（可选） |
 | `OPENAI_API_KEY` | OpenAI API Key | 用于 AI 生成（可选） |
 
 ## AI 生成管线

@@ -1,5 +1,6 @@
 """AI 聊天室服务层"""
 
+import logging
 import os
 import uuid
 from pathlib import Path
@@ -16,6 +17,8 @@ from app.modules.ai_chat.models.chat_message_file import ChatMessageFile
 from app.modules.ai_chat.models.chat_session import ChatSession
 from app.modules.ai_chat.schemas.chat import ChatMessageBody, ChatSessionCreate
 from app.modules.knowledge_base.models.knowledge_base import KnowledgeBase
+
+logger = logging.getLogger(__name__)
 
 UPLOAD_DIR = Path("uploads/chat_files")
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -53,12 +56,23 @@ async def get_sessions(db: AsyncSession, current_user: User) -> list[ChatSession
         .options(joinedload(ChatSession.messages), joinedload(ChatSession.knowledge_base))
     )
     result = await db.execute(stmt)
-    return result.scalars().unique().all()
+    return result.unique().scalars().all()
 
 
 async def get_session(db: AsyncSession, session_id: int, current_user: User) -> ChatSession:
-    """获取会话详情"""
-    session = await db.get(ChatSession, session_id)
+    """获取会话详情（预加载 knowledge_base 和 messages 关系，避免 async 懒加载异常）"""
+    from sqlalchemy.orm import joinedload
+
+    stmt = (
+        select(ChatSession)
+        .where(ChatSession.id == session_id)
+        .options(
+            joinedload(ChatSession.knowledge_base),
+            joinedload(ChatSession.messages),
+        )
+    )
+    result = await db.execute(stmt)
+    session = result.unique().scalars().one_or_none()
     if session is None:
         raise HTTPException(status_code=404, detail="会话不存在")
     if session.created_by != current_user.id:
@@ -105,7 +119,7 @@ async def get_messages(db: AsyncSession, session_id: int, current_user: User) ->
         .options(joinedload(ChatMessage.files))
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    return result.unique().scalars().all()
 
 
 async def save_message_file(
@@ -156,6 +170,8 @@ async def create_message(
                 await db.flush()
 
     await db.commit()
+    # commit 后属性过期，必须 refresh 才能安全访问 id 等字段
+    await db.refresh(message)
     return message
 
 
@@ -188,6 +204,7 @@ async def stream_chat_response(
     db: AsyncSession,
     current_user: User,
     knowledge_base_id: int | None = None,
+    file_ids: list[int] | None = None,
 ) -> AsyncGenerator[tuple[str, Any], None]:
     """流式获取 AI 聊天室回复"""
     session = await get_session(db, session_id, current_user)
@@ -230,7 +247,35 @@ async def stream_chat_response(
     for msg in history:
         llm_messages.append({"role": msg.role, "content": msg.content})
 
-    llm_messages.append({"role": "user", "content": user_content})
+    # 读取附件文件内容，拼入用户消息供 LLM 使用
+    file_context = ""
+    if file_ids:
+        for fid in file_ids:
+            file_record = await db.get(ChatMessageFile, fid)
+            if file_record is None:
+                continue
+            fpath = Path(file_record.file_path)
+            if not fpath.exists():
+                continue
+            if file_record.is_image:
+                # 图片文件无法直接读取文本，只附加元信息提示
+                file_context += f"\n[附件: {file_record.file_name} (图片, {file_record.file_type})]"
+            else:
+                # 文本类文件读取内容（限制大小避免超长）
+                try:
+                    text = fpath.read_text(encoding="utf-8", errors="ignore")
+                    max_chars = 8000  # 限制每个文件最多8000字符
+                    if len(text) > max_chars:
+                        text = text[:max_chars] + "\n... (内容已截断)"
+                    file_context += f"\n\n--- 文件: {file_record.file_name} ---\n{text}\n--- END ---"
+                except Exception:
+                    file_context += f"\n[附件: {file_record.file_name} (读取失败)]"
+
+    final_user_content = user_content
+    if file_context:
+        final_user_content = user_content + "\n\n以下是用户上传的附件内容:" + file_context
+
+    llm_messages.append({"role": "user", "content": final_user_content})
 
     import asyncio
 
@@ -264,11 +309,18 @@ async def stream_chat_response(
     ai_task = asyncio.create_task(_run_ai_stream())
 
     try:
+        chunk_count = 0
         while True:
             chunk = await chunk_queue.get()
             if chunk is None:
                 break
+            chunk_count += 1
+            # 实时打印流式数据到终端控制台（flush=True 确保立即输出）
+            print(f"\033[36m[AI 流式回复]\033[0m {chunk}", flush=True)
             yield "token", chunk
+
+        if chunk_count > 0:
+            logger.info("流式回复完成，共 %d 个 chunk", chunk_count)
 
         if ai_error:
             raise ai_error

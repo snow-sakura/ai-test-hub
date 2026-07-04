@@ -695,7 +695,7 @@ async def _run_generation_pipeline(
             try:
                 task.status = "failed"
                 task.error_message = str(e)
-                await db.flush()
+                await db.commit()  # 持久化失败状态，而非 flush + rollback
             except Exception:
                 pass
 
@@ -708,10 +708,6 @@ async def _run_generation_pipeline(
                 "message": f"❌ 生成失败: {str(e)}",
                 "level": "error",
             })
-            try:
-                await db.rollback()
-            except Exception:
-                pass
         finally:
             # 标记队列已结束
             await queue.put(None)

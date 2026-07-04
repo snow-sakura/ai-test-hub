@@ -42,9 +42,10 @@ cd frontend && npm run lint                     # ESLint
 2. 若含 `****` 掩码或为空，回退 `.env` 变量（`DEEPSEEK_API_KEY` / `OPENAI_API_KEY` / `QWEN_API_KEY` 等）
 3. `base_url` 自动追加 `/v1` 后缀（LangChain ChatOpenAI 约定）
 
-### AI 生成管线
-- **传统 pipeline**（`use_langgraph=false`，默认）：顺序调用 `ai_service.py` 方法，SSE 事件类型 `status` / `chunk` / `review_chunk` / `revise_chunk`
-- **LangGraph pipeline**（`use_langgraph=true`）：StateGraph DAG，SSE 事件类型 `testing_stage` / `testing_review` / `testing_done` + 各阶段独立 `chunk`
+### SSE 流式
+- **传统管线**（`use_langgraph=false`，默认）：顺序调用 `ai_service.py` 方法，SSE 事件类型 `status` / `chunk` / `review_chunk` / `revise_chunk`
+- **LangGraph 管线**（`use_langgraph=true`）：StateGraph DAG，SSE 事件类型 `testing_stage` / `testing_review` / `testing_done` + 各阶段独立 `chunk`
+- **AI 聊天室**：使用 `StreamingResponse` + 异步生成器，事件类型 `user_message` / `token` / `complete` / `error`，以 `[DONE]` 作为结束信号
 - 提示词类型 `PromptConfig.prompt_type` 是 `String(20)` 无 CHECK 约束，新增类型无需改表
 
 ### 前端

@@ -39,26 +39,34 @@
         </div>
 
         <nav class="session-nav">
-          <div
-            v-for="session in filteredSessions"
-            :key="session.id"
-            :class="['session-item', { active: store.currentSession?.id === session.id }]"
-            @click="handleSelectSession(session); showMobileSidebar = false"
-          >
-            <div class="session-icon">
-              <el-icon :size="14" :color="store.currentSession?.id === session.id ? '#C67B5C' : '#8B7355'"><ChatDotRound /></el-icon>
+          <template v-if="store.sessions.length > 0">
+            <div v-for="group in sessionGroups" :key="group.label">
+              <div class="session-date-label">{{ group.label }}</div>
+              <div
+                v-for="session in group.sessions"
+                :key="session.id"
+                :class="['session-item', { active: store.currentSession?.id === session.id }]"
+                @click="handleSelectSession(session); showMobileSidebar = false"
+              >
+                <div class="session-icon">
+                  <el-icon :size="14" :color="store.currentSession?.id === session.id ? '#C67B5C' : '#8B7355'"><ChatDotRound /></el-icon>
+                </div>
+                <div class="session-info">
+                  <span class="session-title">{{ store.getSessionTitle(session) }}</span>
+                  <span class="session-time">{{ formatTime(session.created_at) }}</span>
+                </div>
+                <div class="session-delete" @click.stop>
+                  <el-button text size="small" type="danger" @click="handleDeleteSession(session.id)" circle>
+                    <el-icon :size="12"><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
             </div>
-            <div class="session-info">
-              <span class="session-title">{{ store.getSessionTitle(session) }}</span>
-              <span class="session-time">{{ formatTime(session.created_at) }}</span>
+            <div v-if="hasMoreSessions" class="session-more-btn" @click="showAllSessions = true">
+              加载更多 ({{ filteredSessions.length - SESSION_LIMIT }}条)
             </div>
-            <div class="session-delete" @click.stop>
-              <el-button text size="small" type="danger" @click="handleDeleteSession(session.id)" circle>
-                <el-icon :size="12"><Delete /></el-icon>
-              </el-button>
-            </div>
-          </div>
-          <div v-if="store.sessions.length === 0" class="empty-state">
+          </template>
+          <div v-else class="empty-state">
             <div class="empty-icon">
               <el-icon :size="40" color="#D4A574"><ChatDotRound /></el-icon>
             </div>
@@ -84,38 +92,35 @@
           </el-button>
         </div>
 
-        <div class="search-wrapper">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索会话..."
-            size="small"
-            prefix-icon="Search"
-            class="search-input"
-            clearable
-          />
-        </div>
-
         <nav class="session-nav">
-          <div
-            v-for="session in filteredSessions"
-            :key="session.id"
-            :class="['session-item', { active: store.currentSession?.id === session.id }]"
-            @click="handleSelectSession(session)"
-          >
-            <div class="session-icon">
-              <el-icon :size="14" :color="store.currentSession?.id === session.id ? '#C67B5C' : '#8B7355'"><ChatDotRound /></el-icon>
+          <template v-if="store.sessions.length > 0">
+            <div v-for="group in sessionGroups" :key="group.label">
+              <div class="session-date-label">{{ group.label }}</div>
+              <div
+                v-for="session in group.sessions"
+                :key="session.id"
+                :class="['session-item', { active: store.currentSession?.id === session.id }]"
+                @click="handleSelectSession(session)"
+              >
+                <div class="session-icon">
+                  <el-icon :size="14" :color="store.currentSession?.id === session.id ? '#C67B5C' : '#8B7355'"><ChatDotRound /></el-icon>
+                </div>
+                <div class="session-info">
+                  <span class="session-title">{{ store.getSessionTitle(session) }}</span>
+                  <span class="session-time">{{ formatTime(session.created_at) }}</span>
+                </div>
+                <div class="session-delete" @click.stop>
+                  <el-button text size="small" type="danger" @click="handleDeleteSession(session.id)" circle>
+                    <el-icon :size="12"><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
             </div>
-            <div class="session-info">
-              <span class="session-title">{{ store.getSessionTitle(session) }}</span>
-              <span class="session-time">{{ formatTime(session.created_at) }}</span>
+            <div v-if="hasMoreSessions" class="session-more-btn" @click="showAllSessions = true">
+              加载更多 ({{ filteredSessions.length - SESSION_LIMIT }}条)
             </div>
-            <div class="session-delete" @click.stop>
-              <el-button text size="small" type="danger" @click="handleDeleteSession(session.id)" circle>
-                <el-icon :size="12"><Delete /></el-icon>
-              </el-button>
-            </div>
-          </div>
-          <div v-if="store.sessions.length === 0" class="empty-state">
+          </template>
+          <div v-else class="empty-state">
             <div class="empty-icon">
               <el-icon :size="40" color="#D4A574"><ChatDotRound /></el-icon>
             </div>
@@ -169,17 +174,14 @@
         <div v-else class="chat-content">
           <header class="chat-header">
             <div class="header-left">
+              <router-link to="/home" class="back-home-link" title="返回首页">
+                <el-icon :size="18"><HomeFilled /></el-icon>
+              </router-link>
               <div class="header-title">{{ store.currentSession.name }}</div>
               <el-tag v-if="store.currentSession.knowledge_base_name" size="small" type="warning" class="kb-badge">
                 <el-icon :size="12"><FolderOpened /></el-icon>
                 {{ store.currentSession.knowledge_base_name }}
               </el-tag>
-            </div>
-            <div class="header-right">
-              <el-button text size="small" @click="handleNewSession" class="btn-header">
-                <el-icon :size="14"><Plus /></el-icon>
-                新对话
-              </el-button>
             </div>
           </header>
 
@@ -189,55 +191,64 @@
               :key="message.id"
               :class="['message-block', message.role === 'user' ? 'is-user' : 'is-ai']"
             >
-              <div class="avatar-wrapper">
-                <div :class="['avatar', message.role === 'user' ? 'avatar-user' : 'avatar-ai']">
-                  <el-icon :size="16" :color="message.role === 'user' ? '#3b82f6' : '#C67B5C'"><User /></el-icon>
-                </div>
-              </div>
-              <div :class="['bubble', message.role === 'user' ? 'bubble-user' : 'bubble-ai']">
-                <div v-if="message.role === 'assistant'" class="bubble-header">
-                  <span class="bubble-name">AI 助手</span>
-                  <span class="bubble-time">{{ formatTime(message.created_at) }}</span>
-                </div>
-                <div v-if="message.role === 'assistant'" class="bubble-content markdown-content" v-html="renderMarkdown(message.content)"></div>
-              <div v-else class="bubble-content">{{ message.content }}</div>
-                <div v-if="message.role === 'user'" class="bubble-footer">
-                  <span class="bubble-time">{{ formatTime(message.created_at) }}</span>
-                </div>
-                <div v-if="message.files.length > 0" class="bubble-files">
-                  <div v-for="file in message.files" :key="file.id" class="file-tag">
-                    <el-icon v-if="file.is_image" :size="12"><Picture /></el-icon>
-                    <el-icon v-else :size="12"><Document /></el-icon>
-                    <span>{{ file.file_name }}</span>
+              <!-- AI 消息：文档式布局 -->
+              <template v-if="message.role === 'assistant'">
+                <div class="ai-message">
+                  <div class="ai-label">
+                    <span class="ai-name">AI 助手</span>
+                    <span class="ai-dot">·</span>
+                    <span class="ai-time">{{ formatTime(message.created_at) }}</span>
+                  </div>
+                  <div class="markdown-content" v-html="renderMarkdown(message.content)"></div>
+                  <div v-if="message.files.length > 0" class="message-files">
+                    <div v-for="file in message.files" :key="file.id" class="file-tag">
+                      <el-icon v-if="file.is_image" :size="12"><Picture /></el-icon>
+                      <el-icon v-else :size="12"><Document /></el-icon>
+                      <span>{{ file.file_name }}</span>
+                    </div>
+                  </div>
+                  <div class="ai-actions">
+                    <el-button text size="small" :type="message.rating === 'up' ? 'primary' : 'default'" @click="handleRate(message.id, 'up')">
+                      <el-icon :size="12"><Check /></el-icon>
+                      <span>有用</span>
+                    </el-button>
+                    <el-button text size="small" :type="message.rating === 'down' ? 'danger' : 'default'" @click="handleRate(message.id, 'down')">
+                      <el-icon :size="12"><Close /></el-icon>
+                      <span>无用</span>
+                    </el-button>
+                    <el-button text size="small" @click="handleCopy(message.content)">
+                      <el-icon :size="12"><CopyDocument /></el-icon>
+                      <span>复制</span>
+                    </el-button>
                   </div>
                 </div>
-                <div v-if="message.role === 'assistant'" class="bubble-actions">
-                  <el-button text size="small" :type="message.rating === 'up' ? 'primary' : 'default'" @click="handleRate(message.id, 'up')">
-                    <el-icon :size="12"><Check /></el-icon>
-                    <span>有用</span>
-                  </el-button>
-                  <el-button text size="small" :type="message.rating === 'down' ? 'danger' : 'default'" @click="handleRate(message.id, 'down')">
-                    <el-icon :size="12"><Close /></el-icon>
-                    <span>无用</span>
-                  </el-button>
-                  <el-button text size="small" @click="handleCopy(message.content)">
-                    <el-icon :size="12"><CopyDocument /></el-icon>
-                    <span>复制</span>
-                  </el-button>
+              </template>
+
+              <!-- 用户消息：右对齐气泡 -->
+              <template v-else>
+                <div class="bubble bubble-user">
+                  <div class="bubble-content">{{ message.content }}</div>
+                  <div v-if="message.files.length > 0" class="bubble-files">
+                    <div v-for="file in message.files" :key="file.id" class="file-tag">
+                      <el-icon v-if="file.is_image" :size="12"><Picture /></el-icon>
+                      <el-icon v-else :size="12"><Document /></el-icon>
+                      <span>{{ file.file_name }}</span>
+                    </div>
+                  </div>
+                  <div class="bubble-footer">
+                    <span class="bubble-time">{{ formatTime(message.created_at) }}</span>
+                  </div>
                 </div>
-              </div>
+              </template>
             </div>
 
-            <div v-if="store.isStreaming" class="message-block is-ai">
-              <div class="avatar-wrapper">
-                <div class="avatar avatar-ai">
-                  <el-icon :size="16" color="#C67B5C"><User /></el-icon>
-                </div>
-              </div>
-              <div class="bubble bubble-ai">
-                <div class="bubble-header">
-                  <span class="bubble-name">AI 助手</span>
-                  <span class="bubble-time">正在回复...</span>
+            <!-- Typing indicator：文档式，仅在 AI 尚未开始回复时显示 -->
+            <div v-if="showTypingIndicator" class="message-block is-ai">
+              <div class="ai-message">
+                <div class="ai-label">
+                  <span class="ai-name">AI 助手</span>
+                  <span class="ai-dot">·</span>
+                  <span class="ai-time">正在回复...</span>
                 </div>
                 <div class="typing-indicator">
                   <span class="dot"></span>
@@ -274,12 +285,11 @@
               <el-input
                 v-model="inputMessage"
                 type="textarea"
-                :rows="2"
-                placeholder="输入消息，按 Ctrl/Cmd + Enter 发送..."
-                :autosize="{ minRows: 2, maxRows: 6 }"
+                :rows="1"
+                placeholder="输入消息，按 Enter 发送..."
+                :autosize="{ minRows: 1, maxRows: 6 }"
                 :disabled="store.isStreaming"
-                @keydown.enter.meta="handleSend"
-                @keydown.enter.ctrl="handleSend"
+                @keydown.enter.exact.prevent="handleSend"
                 class="message-input"
               />
               <el-button
@@ -289,7 +299,7 @@
                 :disabled="!inputMessage.trim() && uploadedFiles.length === 0"
                 class="btn-send"
               >
-                <el-icon :size="16"><Edit /></el-icon>
+                <el-icon :size="18"><Promotion /></el-icon>
               </el-button>
             </div>
           </footer>
@@ -382,7 +392,7 @@
               <li>支持上传文档和图片</li>
               <li>可关联知识库进行问答</li>
               <li>支持 Markdown 格式输出</li>
-              <li>Ctrl/Cmd + Enter 发送消息</li>
+              <li>Enter 发送消息</li>
             </ul>
           </div>
         </div>
@@ -460,7 +470,6 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import {
   ChatDotRound,
-  User,
   Paperclip,
   Picture,
   Document,
@@ -477,6 +486,8 @@ import {
   UploadFilled,
   Check,
   InfoFilled,
+  HomeFilled,
+  Promotion,
 } from '@element-plus/icons-vue'
 import { useChatStore } from '../../../stores/ai_chat/chat'
 import type { ChatSession } from '../../../types/ai_chat'
@@ -495,17 +506,59 @@ const searchKeyword = ref('')
 
 const showKBUploadDialog = ref(false)
 const showCreateKBDialog = ref(false)
-const kbUploadForm = ref({ kbId: 0 })
+const kbUploadForm = ref<{ kbId: number | null }>({ kbId: null })
 const kbUploadFiles = ref<any[]>([])
 const createKBForm = ref({ name: '', description: '' })
 const createKBFiles = ref<any[]>([])
 const isUploading = ref(false)
 const isCreating = ref(false)
+const showAllSessions = ref(false)
+const SESSION_LIMIT = 10
 
 const filteredSessions = computed(() => {
   if (!searchKeyword.value) return store.sessions
   const keyword = searchKeyword.value.toLowerCase()
-  return store.sessions.filter((s) => s.name.toLowerCase().includes(keyword))
+  return store.sessions.filter((s) => s.name.toLowerCase().includes(keyword) || (s.first_message && s.first_message.toLowerCase().includes(keyword)))
+})
+
+/** 按日期分组的会话列表 */
+interface SessionGroup { label: string; sessions: typeof store.sessions }
+const sessionGroups = computed<SessionGroup[]>(() => {
+  const list = showAllSessions.value ? filteredSessions.value : filteredSessions.value.slice(0, SESSION_LIMIT)
+  const groups: Record<string, typeof store.sessions> = {}
+  const now = new Date()
+  const todayStr = now.toISOString().slice(0, 10)
+  const yesterday = new Date(now.getTime() - 86400000).toISOString().slice(0, 10)
+
+  for (const s of list) {
+    const d = s.created_at ? new Date(s.created_at) : new Date()
+    const ds = d.toISOString().slice(0, 10)
+    let label = ''
+    if (ds === todayStr) label = '今天'
+    else if (ds === yesterday) label = '昨天'
+    else label = `${d.getMonth() + 1}月${d.getDate()}日`
+    if (!groups[label]) groups[label] = []
+    groups[label].push(s)
+  }
+  // 按时间倒序排列各组（今天 > 昨天 > 更早）
+  const order = ['今天', '昨天']
+  const result: SessionGroup[] = []
+  for (const k of order) {
+    if (groups[k]) result.push({ label: k, sessions: groups[k] })
+  }
+  for (const [k, v] of Object.entries(groups)) {
+    if (!order.includes(k)) result.push({ label: k, sessions: v })
+  }
+  return result
+})
+
+const hasMoreSessions = computed(() => filteredSessions.value.length > SESSION_LIMIT && !showAllSessions.value)
+
+/** 是否显示 typing indicator：正在流式输出且最后一条不是 assistant（即 AI 还没开始回复） */
+const showTypingIndicator = computed(() => {
+  if (!store.isStreaming) return false
+  const last = store.messages[store.messages.length - 1]
+  return !last || last.role !== 'assistant'
 })
 
 function isImage(fileName: string): boolean {
@@ -586,7 +639,15 @@ function removeUploadedFile(index: number) {
   uploadedFileIds.value.splice(index, 1)
 }
 
-function fillPrompt(text: string) {
+/** 点击快捷提示：无会话时自动创建并发送，有会话时填入输入框 */
+async function fillPrompt(text: string) {
+  if (!store.currentSession) {
+    await store.createSession()
+    inputMessage.value = text
+    await nextTick()
+    handleSend()
+    return
+  }
   inputMessage.value = text
 }
 
@@ -597,7 +658,8 @@ async function handleSend() {
   }
 
   store.isStreaming = true
-  const userMessageContent = inputMessage.value.trim()
+  // 仅上传文件未输入文字时，填充默认提示文本（后端 content 不允许为空）
+  const userMessageContent = inputMessage.value.trim() || '请分析我上传的文件'
   const sendFileIds = [...uploadedFileIds.value]
   const userMessage = {
     id: Date.now(),
@@ -653,10 +715,17 @@ async function handleSend() {
             await nextTick()
             scrollToBottom()
           } else if (json.type === 'complete') {
+            // 用后端返回的真实消息 ID 替换前端临时 ID
+            if (json.message_id && assistantMessageId !== 0) {
+              store.replaceMessageId(assistantMessageId, json.message_id)
+              assistantMessageId = json.message_id
+            }
             if (assistantMessageId !== 0) {
               store.updateMessageContent(assistantMessageId, json.content)
             }
             store.isStreaming = false
+            // 刷新会话列表以更新 first_message 标题
+            store.loadSessions()
             await nextTick()
             scrollToBottom()
           } else if (json.type === 'error') {
@@ -686,24 +755,43 @@ async function handleSend() {
 }
 
 async function handleRate(messageId: number, rating: string) {
-  await store.rateMessage(messageId, rating)
+  // 获取当前消息的 rating，支持 toggle（再次点击相同评分则取消）
+  const message = store.messages.find((m) => m.id === messageId)
+  const currentRating = message?.rating
+  const newRating = currentRating === rating ? undefined : rating
+  await store.rateMessage(messageId, newRating)
 }
 
 async function handleCopy(content: string) {
+  // 清理 Markdown 格式，复制纯文本
+  const cleanText = content
+    .replace(/```[\s\S]*?```/g, (m) => m.replace(/```\w*\n?/g, '').replace(/```/g, '')) // 代码块
+    .replace(/`([^`]+)`/g, '$1')           // 行内代码
+    .replace(/\*\*(.+?)\*\*/g, '$1')      // 粗体
+    .replace(/\*(.+?)\*/g, '$1')          // 斜体
+    .replace(/~~(.+?)~~/g, '$1')          // 删除线
+    .replace(/^#{1,6} /gm, '')            // 标题
+    .replace(/^[-*+] /gm, '')             // 无序列表
+    .replace(/^\d+\. /gm, '')             // 有序列表
+    .replace(/^> /gm, '')                 // 引用
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1') // 链接
+    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '$1') // 图片
+    .replace(/^---$/gm, '')               // 分隔线
+    .trim()
+
   try {
-    await navigator.clipboard.writeText(content)
-    ElMessage.success('已复制')
+    await navigator.clipboard.writeText(cleanText)
+    ElMessage.success('已复制到剪贴板')
   } catch {
-    // 降级方案：clipboard API 不可用时使用 textarea
     const textarea = document.createElement('textarea')
-    textarea.value = content
+    textarea.value = cleanText
     textarea.style.position = 'fixed'
     textarea.style.opacity = '0'
     document.body.appendChild(textarea)
     textarea.select()
     document.execCommand('copy')
     document.body.removeChild(textarea)
-    ElMessage.success('已复制')
+    ElMessage.success('已复制到剪贴板')
   }
 }
 
@@ -793,11 +881,13 @@ function renderMarkdown(content: string): string {
   })
 }
 
+/** 检测是否为移动端 */
+function checkMobile() {
+  isMobile.value = window.innerWidth < 768
+}
+
 onMounted(async () => {
   // 检测移动端
-  const checkMobile = () => {
-    isMobile.value = window.innerWidth < 768
-  }
   checkMobile()
   window.addEventListener('resize', checkMobile)
 
@@ -817,7 +907,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   store.abortCurrentRequest()
-  window.removeEventListener('resize', () => {})
+  window.removeEventListener('resize', checkMobile)
 })
 </script>
 
@@ -830,10 +920,12 @@ onUnmounted(() => {
 .chat-container {
   display: flex;
   height: calc(100vh - var(--topbar-height, 64px) - 48px);
+  overflow: hidden;
 }
 
 .chat-sidebar {
-  width: 260px;
+  width: 240px;
+  min-width: 0;
   background: var(--card-bg);
   border-right: var(--border);
   display: flex;
@@ -842,7 +934,7 @@ onUnmounted(() => {
 }
 
 .sidebar-header {
-  padding: 18px 20px;
+  padding: 14px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -915,6 +1007,29 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  max-height: calc(100vh - 200px);
+}
+
+.session-date-label {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  padding: 8px 14px 4px;
+  font-weight: 500;
+  user-select: none;
+}
+
+.session-more-btn {
+  text-align: center;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--primary, #C67B5C);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.session-more-btn:hover {
+  background: rgba(198, 123, 92, 0.06);
 }
 
 .session-item {
@@ -1042,6 +1157,7 @@ onUnmounted(() => {
   flex-direction: column;
   background: var(--bg);
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -1158,11 +1274,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
 .chat-header {
-  padding: 16px 28px;
+  padding: 12px 24px;
   background: var(--card-bg);
   border-bottom: var(--border);
   display: flex;
@@ -1177,8 +1294,25 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+.back-home-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.back-home-link:hover {
+  background: var(--bg-hover, rgba(198, 123, 92, 0.1));
+  color: var(--primary);
+}
+
 .header-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text);
 }
@@ -1190,29 +1324,31 @@ onUnmounted(() => {
   color: #d97706;
 }
 
-.btn-header {
-  padding: 6px 14px;
-  border-radius: 8px;
-  color: var(--text-secondary);
-  transition: all 0.25s;
-}
-
-.btn-header:hover {
-  background: rgba(198, 123, 92, 0.06);
-  color: #C67B5C;
-}
-
 .message-list {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 28px;
+  overflow-x: hidden;
+  padding: 20px 24px;
+  min-width: 0;
 }
 
 .message-block {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
+  min-width: 0;
+  max-width: 100%;
   animation: fade-slide-in 0.3s ease-out;
+}
+
+.message-block.is-ai {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.message-block.is-user {
+  display: flex;
+  justify-content: flex-end;
 }
 
 @keyframes fade-slide-in {
@@ -1220,86 +1356,111 @@ onUnmounted(() => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.message-block.is-user {
-  flex-direction: row-reverse;
+/* ====== AI 消息：文档式布局 ====== */
+
+.ai-message {
+  width: 100%;
+  min-width: 0;
 }
 
-.avatar-wrapper {
-  flex-shrink: 0;
-}
-
-.avatar {
-  width: 42px;
-  height: 42px;
-  border-radius: 14px;
+.ai-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.25s;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 
-.avatar-ai {
-  background: linear-gradient(135deg, rgba(198, 123, 92, 0.12) 0%, rgba(212, 165, 116, 0.08) 100%);
+.ai-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.avatar-user {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(96, 165, 250, 0.08) 100%);
+.ai-dot {
+  font-size: 13px;
+  color: var(--text-muted);
 }
+
+.ai-time {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ai-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(180, 150, 120, 0.06);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.ai-message:hover .ai-actions {
+  opacity: 1;
+}
+
+.message-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ====== 用户消息：气泡 ====== */
 
 .bubble {
   max-width: 65%;
-  padding: 16px 20px;
-  border-radius: 20px;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 16px;
   position: relative;
-}
-
-.bubble-ai {
-  background: var(--card-bg);
-  border: 1px solid rgba(198, 123, 92, 0.06);
-  border-radius: 20px 20px 20px 8px;
-  box-shadow: 0 4px 16px rgba(180, 150, 120, 0.06);
 }
 
 .bubble-user {
   background: linear-gradient(135deg, #C67B5C 0%, #D49472 100%);
   color: #fff;
-  border-radius: 20px 20px 8px 20px;
-  box-shadow: 0 6px 20px rgba(198, 123, 92, 0.3);
-}
-
-.bubble-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.bubble-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #C67B5C;
-}
-
-.bubble-time {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.bubble-user .bubble-time {
-  color: rgba(255, 255, 255, 0.6);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 4px 16px rgba(198, 123, 92, 0.25);
 }
 
 .bubble-content {
   font-size: 14px;
-  line-height: 1.8;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.bubble-footer {
+  margin-top: 6px;
+  text-align: right;
+}
+
+.bubble-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bubble-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bubble-user .file-tag {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .markdown-content {
   font-size: 14px;
   line-height: 1.8;
   word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .markdown-content h1,
@@ -1315,7 +1476,7 @@ onUnmounted(() => {
 }
 
 .markdown-content h1 {
-  font-size: 20px;
+  font-size: 22px;
   border-bottom: 1px solid rgba(180, 150, 120, 0.1);
   padding-bottom: 8px;
 }
@@ -1360,7 +1521,6 @@ onUnmounted(() => {
 
 .markdown-content blockquote {
   border-left: 3px solid #C67B5C;
-  padding-left: 12px;
   margin: 12px 0;
   color: var(--text-muted);
   background: rgba(198, 123, 92, 0.04);
@@ -1373,23 +1533,27 @@ onUnmounted(() => {
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 13px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
   color: #C67B5C;
 }
 
 .markdown-content pre {
-  background: rgba(0, 0, 0, 0.03);
+  background: #1e1e2e;
   padding: 16px;
-  border-radius: 10px;
+  border-radius: 8px;
   overflow-x: auto;
   margin: 12px 0;
-  border: 1px solid rgba(180, 150, 120, 0.06);
+  border: none;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .markdown-content pre code {
   background: none;
   padding: 0;
-  color: var(--text);
+  color: #cdd6f4;
+  font-size: 13px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
 }
 
 .markdown-content a {
@@ -1399,6 +1563,37 @@ onUnmounted(() => {
 
 .markdown-content a:hover {
   color: #D49472;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 13px;
+  overflow-x: auto;
+  display: block;
+}
+
+.markdown-content th,
+.markdown-content td {
+  padding: 8px 12px;
+  border: 1px solid rgba(180, 150, 120, 0.15);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.markdown-content th {
+  background: rgba(198, 123, 92, 0.06);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.markdown-content td {
+  color: var(--text-secondary, #666);
+}
+
+.markdown-content tr:hover td {
+  background: rgba(198, 123, 92, 0.03);
 }
 
 .markdown-content hr {
@@ -1412,17 +1607,20 @@ onUnmounted(() => {
   border-collapse: collapse;
   margin: 12px 0;
   font-size: 13px;
+  display: block;
+  overflow-x: auto;
 }
 
 .markdown-content th,
 .markdown-content td {
-  border: 1px solid rgba(180, 150, 120, 0.1);
+  border: 1px solid rgba(180, 150, 120, 0.12);
   padding: 8px 12px;
   text-align: left;
+  white-space: nowrap;
 }
 
 .markdown-content th {
-  background: rgba(198, 123, 92, 0.06);
+  background: rgba(198, 123, 92, 0.08);
   font-weight: 600;
 }
 
@@ -1440,58 +1638,27 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-.bubble-footer {
-  margin-top: 10px;
-  text-align: right;
-}
-
-.bubble-files {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 12px;
-}
-
 .file-tag {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: rgba(0, 0, 0, 0.03);
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 12px;
   color: var(--text-secondary);
-}
-
-.bubble-user .file-tag {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.bubble-actions {
-  display: flex;
-  gap: 16px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(180, 150, 120, 0.06);
-  opacity: 0;
-  transition: opacity 0.25s;
-}
-
-.bubble:hover .bubble-actions {
-  opacity: 1;
 }
 
 .typing-indicator {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .dot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   background: #C67B5C;
   border-radius: 50%;
   animation: typing-dot 1.4s infinite ease-in-out both;
@@ -1511,7 +1678,7 @@ onUnmounted(() => {
 }
 
 .chat-footer {
-  padding: 20px 28px;
+  padding: 16px 24px;
   background: var(--card-bg);
   border-top: var(--border);
   box-shadow: 0 -2px 8px rgba(180, 150, 120, 0.04);
@@ -1545,7 +1712,7 @@ onUnmounted(() => {
 .input-area {
   display: flex;
   gap: 12px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .input-tools {
@@ -1573,16 +1740,20 @@ onUnmounted(() => {
 
 .message-input {
   flex: 1;
+  align-self: center;
 }
 
 .message-input .el-textarea__inner {
   border-radius: 16px;
   border-color: rgba(198, 123, 92, 0.08);
   background: rgba(198, 123, 92, 0.02);
-  padding: 14px 18px;
+  padding: 10px 18px;
   font-size: 14px;
+  line-height: 1.5;
+  text-align: left;
   resize: none;
   transition: all 0.25s;
+  box-sizing: border-box;
 }
 
 .message-input .el-textarea__inner:focus {
@@ -1592,9 +1763,10 @@ onUnmounted(() => {
 }
 
 .btn-send {
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1615,11 +1787,13 @@ onUnmounted(() => {
 }
 
 .chat-sidebar-right {
-  width: 280px;
+  width: 260px;
+  min-width: 0;
   background: var(--card-bg);
   border-left: var(--border);
-  padding: 16px;
+  padding: 14px;
   overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: -4px 0 20px rgba(180, 150, 120, 0.04);
 }
 
@@ -1834,10 +2008,10 @@ onUnmounted(() => {
 
 @media (max-width: 1200px) {
   .chat-sidebar {
-    width: 240px;
+    width: 220px;
   }
   .chat-sidebar-right {
-    width: 260px;
+    width: 240px;
   }
 }
 
@@ -1850,6 +2024,9 @@ onUnmounted(() => {
 @media (max-width: 768px) {
   .chat-sidebar {
     display: none;
+  }
+  .message-block.is-ai {
+    max-width: 100%;
   }
 }
 
