@@ -18,6 +18,9 @@ async def analyze_node(state: GenerationState) -> dict:
 
     输出到 state.analysis
     """
+    if "analyze" in (state.get("skip_stages") or []):
+        # 继续生成：复用预填结果，不重复调用 LLM
+        return {}
     llm = state.get("_analyzer_llm") or state.get("_writer_llm")
     if not llm:
         raise RuntimeError("analyze_node: writer LLM 未初始化")

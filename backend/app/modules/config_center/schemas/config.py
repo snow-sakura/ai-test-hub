@@ -21,6 +21,7 @@ class AIModelConfigSummary(BaseModel):
     role: str
     model_name: str
     is_active: bool
+    billing_type: str = 'free'
 
     model_config = {"from_attributes": True}
 
@@ -33,6 +34,7 @@ class AIModelConfigCreate(BaseModel):
     api_key: str | None = Field(None, description='API Key')
     base_url: str = Field(..., description='API Base URL')
     model_name: str = Field(..., description='模型名称')
+    billing_type: str = Field('free', description='计费类型（free=免费模型串行执行 / paid=付费模型并行执行）')
     max_tokens: int = Field(4096, description='最大Token数')
     temperature: float = Field(0.7, description='温度参数')
     top_p: float = Field(0.9, description='Top P参数')
@@ -46,6 +48,7 @@ class AIModelConfigUpdate(BaseModel):
     api_key: str | None = Field(None, description='API Key')
     base_url: str | None = Field(None, description='API Base URL')
     model_name: str | None = Field(None, description='模型名称')
+    billing_type: str | None = Field(None, description='计费类型（free/paid）')
     max_tokens: int | None = Field(None, description='最大Token数')
     temperature: float | None = Field(None, description='温度参数')
     top_p: float | None = Field(None, description='Top P参数')
@@ -61,6 +64,7 @@ class AIModelConfigDetail(BaseModel):
     api_key: str | None = None
     base_url: str
     model_name: str
+    billing_type: str = 'free'
     max_tokens: int
     temperature: float
     top_p: float

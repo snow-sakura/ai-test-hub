@@ -16,6 +16,9 @@ async def write_node(state: GenerationState) -> dict:
 
     输出到 state.generated_text
     """
+    if "writing" in (state.get("skip_stages") or []):
+        # 继续生成：复用预填结果，不重复调用 LLM
+        return {}
     llm = state.get("_writer_llm")
     if not llm:
         raise RuntimeError("write_node: writer LLM 未初始化")

@@ -27,16 +27,81 @@ export interface AIGenerationRequest {
   use_langgraph?: boolean
 }
 
+/** 生成序列（批量）请求 */
+export interface AIGenerationBatchRequest {
+  requirements: string[]
+  project_id?: number
+  writer_model_config_id?: number
+  writer_prompt_config_id?: number
+  reviewer_model_config_id?: number
+  reviewer_prompt_config_id?: number
+  analyzer_prompt_config_id?: number
+  improver_prompt_config_id?: number
+  enable_auto_review?: boolean
+  pipeline_type?: 'traditional' | 'langgraph' | 'autogen'
+}
+
+/** 生成序列创建结果 */
+export interface AIGenerationBatchResponse {
+  batch_id: string
+  execution_mode: 'serial' | 'parallel'
+  billing_type: 'free' | 'paid'
+  max_concurrency: number
+  task_ids: string[]
+  total: number
+}
+
+/** 批次内单任务状态 */
+export interface BatchTaskStatusItem {
+  task_id: string
+  title: string
+  status: string
+  progress: number
+  queue_position: number | null
+  error_message: string | null
+  case_count: number
+  created_at: string | null
+  completed_at: string | null
+}
+
+/** 生成序列批次状态 */
+export interface GenerationBatchStatus {
+  batch_id: string
+  execution_mode: 'serial' | 'parallel'
+  billing_type: 'free' | 'paid'
+  max_concurrency: number
+  total: number
+  completed: number
+  failed: number
+  running: number
+  queued: number
+  tasks: BatchTaskStatusItem[]
+}
+
+/** 生成调度器状态（免费串行 / 付费并行） */
+export interface SchedulerStatus {
+  free_running: number
+  free_queued: number
+  free_max: number
+  paid_running: number
+  paid_queued: number
+  paid_max: number
+}
+
 /** AI 生成任务 */
 export interface AIGenerationTask {
   id: number
   task_id: string
   title: string
-  status: 'pending' | 'generating' | 'reviewing' | 'revising' | 'completed' | 'failed' | 'cancelled'
+  status: 'queued' | 'pending' | 'analyzing' | 'generating' | 'reviewing' | 'revising' | 'completed' | 'failed' | 'cancelled'
   progress: number
   requirement_text: string
   output_mode: string
   project_id: number | null
+  batch_id?: string | null
+  billing_type?: 'free' | 'paid' | null
+  case_count?: number | null
+  queue_position?: number | null
   created_by: number
   generated_content: Record<string, unknown> | null
   review_feedback: string | null
@@ -71,6 +136,8 @@ export interface AIModelConfigSummary {
   role: string
   model_name: string
   is_active: boolean
+  /** 计费类型：free=免费模型（任务串行）/ paid=付费模型（任务并行） */
+  billing_type?: 'free' | 'paid'
 }
 
 /** 提示词配置概要（下拉选择用） */
@@ -139,12 +206,17 @@ export interface SSEEvent {
   type: 'log' | 'chunk' | 'cases' | 'status' | 'review_chunk' | 'review_complete'
     | 'revise_chunk' | 'revise_complete' | 'complete' | 'error' | 'done'
     | 'testing_stage' | 'testing_token' | 'testing_review' | 'testing_done'
+    | 'queue_position' | 'cancelled'
   content?: string
   cases?: GeneratedTestCase[]
   status?: string
   progress?: number
   feedback?: string
   message?: string
+  /** queue_position 事件专用 */
+  billing?: 'free' | 'paid'
+  position?: number
+  queue_size?: number
   /** log 事件专用 */
   level?: 'info' | 'success' | 'warning' | 'error'
   /** LangGraph/AutoGen 阶段事件字段 */

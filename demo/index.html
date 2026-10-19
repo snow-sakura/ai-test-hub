@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-HUB · 智能测试工作台</title>
+<meta name="description" content="AI 驱动的一站式软件测试平台：需求进、用例出，覆盖生成→评审→入库→报告全流程。">
+<style>
+  :root{--p:#4f46e5;--p2:#7c3aed;--bg:#f6f7fb;--tx:#1e293b;--mut:#64748b;--ok:#10b981;--warn:#f59e0b}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--tx);line-height:1.7}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  header{background:linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%);color:#fff;padding:72px 0 88px;text-align:center}
+  header h1{font-size:44px;letter-spacing:2px}
+  header h1 span{background:linear-gradient(90deg,#a5b4fc,#f0abfc);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{margin-top:14px;font-size:18px;opacity:.92}
+  .badges{margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .badges span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);padding:6px 16px;border-radius:999px;font-size:13px}
+  .cta{margin-top:30px;display:inline-flex;gap:14px}
+  .cta a{padding:12px 30px;border-radius:10px;font-weight:600;text-decoration:none;transition:.2s}
+  .cta a.p{background:#fff;color:var(--p)}
+  .cta a.p:hover{transform:translateY(-2px)}
+  .cta a.s{border:1.5px solid rgba(255,255,255,.7);color:#fff}
+  section{padding:64px 0}
+  h2{font-size:30px;text-align:center;margin-bottom:8px}
+  .sub{text-align:center;color:var(--mut);margin-bottom:40px}
+  .grid{display:grid;gap:20px}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .card{background:#fff;border-radius:16px;padding:26px;box-shadow:0 2px 12px rgba(30,41,59,.06);transition:.2s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(79,70,229,.12)}
+  .card .ico{font-size:30px}
+  .card h3{margin:10px 0 6px;font-size:18px}
+  .card p{color:var(--mut);font-size:14.5px}
+  .tag{display:inline-block;margin-top:12px;font-size:12px;color:var(--p);background:#eef2ff;padding:3px 10px;border-radius:6px}
+  .shot{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(30,41,59,.1);margin-bottom:36px}
+  .shot img{width:100%;display:block;border-bottom:1px solid #eef0f6}
+  .shot .cap{padding:14px 20px;font-size:14.5px;color:var(--mut)}
+  .shot .cap b{color:var(--tx)}
+  .flow{display:flex;gap:0;flex-wrap:wrap;justify-content:center;margin-top:10px}
+  .step{background:#fff;border-radius:14px;padding:20px 22px;min-width:200px;box-shadow:0 2px 12px rgba(30,41,59,.06);position:relative;margin:8px}
+  .step:not(:last-child)::after{content:"→";position:absolute;right:-24px;top:44%;color:var(--p);font-weight:700}
+  .step h4{font-size:16px}
+  .step h4 i{font-style:normal;color:var(--p);margin-right:6px}
+  .step p{font-size:13px;color:var(--mut);margin-top:4px}
+  .cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:6px;font-size:12px;margin:2px 4px 2px 0;background:#f1f5f9;color:#475569}
+  .dark{background:#0f172a;color:#e2e8f0}
+  .dark h2{color:#fff}.dark .sub{color:#94a3b8}
+  .dark .card{background:#1e293b;box-shadow:none}.dark .card p{color:#94a3b8}
+  pre{background:#0b1220;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;overflow:auto;font-size:13.5px;color:#a5f3fc}
+  footer{padding:34px 0;text-align:center;color:var(--mut);font-size:13.5px}
+  footer a{color:var(--p);text-decoration:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>AI-HUB <span>智能测试工作台</span></h1>
+    <p>AI 驱动的一站式软件测试平台 · 需求进，用例出</p>
+    <div class="badges">
+      <span>FastAPI + Vue 3</span><span>SSE 流式生成</span><span>LangGraph 管线</span><span>免费串行 / 付费并行调度</span><span>Docker Compose</span>
+    </div>
+    <div class="cta">
+      <a class="p" href="https://github.com/snow-sakura/ai-test-hub">查看源码</a>
+      <a class="s" href="https://github.com/snow-sakura/ai-test-hub/blob/main/docs/USER_GUIDE.md">使用手册</a>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>核心能力</h2>
+    <p class="sub">从需求到用例基线的全流程 AI 化</p>
+    <div class="grid g3">
+      <div class="card"><div class="ico">⚡</div><h3>AI 用例生成</h3><p>粘贴需求或上传 PDF/Word/MD，流式输出「分析 → 生成 → 评审 → 改进」四阶段产物，结构化用例直接入库或导出 Excel。</p><span class="tag">SSE 断线回放</span></div>
+      <div class="card"><div class="ico">🔁</div><h3>生成序列（批量）</h3><p>一次提交 N 行需求，每条独立成任务。序列看板实时展示 完成 / 进行 / 排队位次，任意任务可单独取消。</p><span class="tag">位次实时收缩</span></div>
+      <div class="card"><div class="ico">💳</div><h3>计费类型调度</h3><p>模型标记「免费」→ 全局严格串行防限流；标记「付费」→ 最多 4 任务并行生成。策略在配置层声明，无需改代码。</p><span class="tag">并发可配置</span></div>
+      <div class="card"><div class="ico">🧰</div><h3>多模型接入</h3><p>DeepSeek / 通义千问 / OpenAI 及兼容 OpenAI 协议服务；密钥双级回退，内置 Mock Server 离线体验全流程。</p><span class="tag">密钥掩码</span></div>
+      <div class="card"><div class="ico">📚</div><h3>测试资产管理</h3><p>用例库、评审流、测试报告统计、API 接口测试、AI 聊天室与知识库 RAG，统一账号权限与审计。</p><span class="tag">RBAC</span></div>
+      <div class="card"><div class="ico">🛡️</div><h3>可靠性设计</h3><p>逐段落库、终态保护（取消不被覆盖）、进程重启僵尸任务自动回收、事件总线 10 分钟回放窗口。</p><span class="tag">零丢事件</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="wrap">
+    <h2>生成流程</h2>
+    <p class="sub">四阶段管线，产物逐段落库，可随时中断/续写</p>
+    <div class="flow">
+      <div class="step"><h4><i>1</i>需求分析</h4><p>拆解测试点与风险面</p></div>
+      <div class="step"><h4><i>2</i>用例生成</h4><p>流式输出 7 列结构化用例表</p></div>
+      <div class="step"><h4><i>3</i>AI 评审</h4><p>覆盖度 / 冗余 / 优先级审查</p></div>
+      <div class="step"><h4><i>4</i>改进优化</h4><p>按评审意见修订并入库</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>界面演示</h2>
+    <p class="sub">以下截图来自真实运行环境（Mock 模型驱动）</p>
+
+    <div class="shot"><img src="images/05-batch-queue-board.png" alt="生成序列看板" loading="lazy">
+      <div class="cap"><b>生成序列看板</b> —— 免费模型严格串行：第 1 条生成中、后两条等待位次，完成后 6 条用例/条 可点击查看。</div></div>
+
+    <div class="shot"><img src="images/04-generation-done.png" alt="生成完成" loading="lazy">
+      <div class="cap"><b>单任务生成完成</b> —— 阶段日志、评审结论与 7 条结构化用例，支持保存到用例库 / 导出 Excel。</div></div>
+
+    <div class="shot"><img src="images/03-generating-streaming.png" alt="流式生成" loading="lazy">
+      <div class="cap"><b>流式生成中</b> —— 分析/生成/评审/改进 四阶段实时滚动，刷新页面自动回放。</div></div>
+
+    <div class="shot"><img src="images/06-model-billing.png" alt="模型配置" loading="lazy">
+      <div class="cap"><b>模型配置</b> —— 计费类型决定调度策略（免费·串行 / 付费·并行），API Key 掩码存储。</div></div>
+
+    <div class="shot"><img src="images/07-records.png" alt="生成记录" loading="lazy">
+      <div class="cap"><b>AI 生成记录</b> —— 任务状态、进度、耗时一屏总览，可回放与删除。</div></div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="wrap">
+    <h2>快速开始</h2>
+    <p class="sub">5 分钟跑通全流程（无需真实 API Key）</p>
+<pre>docker compose up -d mysql redis
+cd backend && pip install -r requirements.txt
+python scripts/init_db.py && python scripts/seed_demo.py
+python scripts/mock_llm_server.py      # 新开终端：Mock LLM
+uvicorn app.main:app --reload --port 8000
+cd ../frontend && npm i && npm run dev</pre>
+    <p style="text-align:center;margin-top:22px;color:#94a3b8">打开前端 → <b style="color:#e2e8f0">admin / admin123</b> → 选择 <b style="color:#e2e8f0">Mock</b> 模型体验 并行/串行 两种调度</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    AI-HUB · 基于 FastAPI + Vue 3 构建 ·
+    <a href="https://github.com/snow-sakura/ai-test-hub">GitHub</a> ·
+    <a href="https://github.com/snow-sakura/ai-test-hub/blob/main/docs/TECHNICAL.md">技术文档</a>
+  </div>
+</footer>
+</body>
+</html>

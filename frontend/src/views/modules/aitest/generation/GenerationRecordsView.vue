@@ -76,10 +76,10 @@
         <template #default="{ row }">
           <template v-if="row.status === 'completed'">
             <el-tag v-if="row.saved_to_library" type="success" size="small" effect="dark">
-              已完成
+              已入库
             </el-tag>
-            <el-tag v-else type="info" size="small" effect="plain" hit>
-              实时
+            <el-tag v-else type="success" size="small" effect="plain">
+              已完成
             </el-tag>
           </template>
           <el-tag v-else :type="taskStatusType(row.status)" size="small" effect="plain">
@@ -146,7 +146,9 @@ const router = useRouter()
 
 /** 任务状态配置：值、中文标签、对应 el-tag 类型 */
 const TASK_STATUS_OPTIONS = [
+  { value: 'queued', label: '排队中', type: 'info' },
   { value: 'pending', label: '待处理', type: 'info' },
+  { value: 'analyzing', label: '分析中', type: 'warning' },
   { value: 'generating', label: '生成中', type: 'warning' },
   { value: 'reviewing', label: '评审中', type: 'warning' },
   { value: 'revising', label: '修改中', type: 'warning' },

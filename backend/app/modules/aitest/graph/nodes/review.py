@@ -20,6 +20,9 @@ async def review_node(state: GenerationState) -> dict:
     输出到 state.review_feedback, state.review_passed, state.overall_score
     从 AI 输出中解析 JSON 结果获取评分和通过状态。
     """
+    if "review" in (state.get("skip_stages") or []):
+        # 继续生成：复用预填结果，不重复调用 LLM
+        return {}
     llm = state.get("_reviewer_llm")
     if not llm:
         # 没有评审模型，默认通过

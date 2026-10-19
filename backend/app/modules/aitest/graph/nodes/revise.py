@@ -16,6 +16,9 @@ async def revise_node(state: GenerationState) -> dict:
 
     输出到 state.revised_text
     """
+    if "revise" in (state.get("skip_stages") or []):
+        # 继续生成：复用预填结果，不重复调用 LLM
+        return {}
     llm = state.get("_improver_llm") or state.get("_writer_llm")
     if not llm:
         raise RuntimeError("revise_node: writer LLM 未初始化")

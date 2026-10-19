@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_BASE_URL: str = "https://api.anthropic.com"
 
+    # ---------- 生成调度 ----------
+    # 付费模型（billing_type=paid）允许的最大并行生成任务数；
+    # 免费模型（billing_type=free）固定为 1（单任务序列）
+    PAID_MODEL_CONCURRENCY: int = 4
+
     # ---------- 文件上传 ----------
     UPLOAD_DIR: str = "uploads"
 
@@ -51,9 +56,9 @@ class Settings(BaseSettings):
 
     # ---------- pydantic-settings 配置 ----------
     model_config = SettingsConfigDict(
-        env_file=".env",          # 从 .env 文件读取
+        env_file=".env",  # 从 .env 文件读取
         env_file_encoding="utf-8",
-        case_sensitive=True,      # 环境变量名区分大小写
+        case_sensitive=True,  # 环境变量名区分大小写
     )
 
 

@@ -403,14 +403,14 @@ async def send_message_stream(
     # 创建事件队列
     queue: asyncio.Queue = asyncio.Queue()
 
-    # 启动后台流式生成任务
+    user_id = current_user.id
+    # 启动后台流式生成任务（使用独立 session，不占用请求级 session）
     asyncio.create_task(
         _run_ai_tester_stream(
             session_id=session_id,
             user_content=body.content,
             model_str=parsed_model,
-            db=db,
-            current_user=current_user,
+            user_id=user_id,
             queue=queue,
         ),
     )
@@ -451,32 +451,51 @@ async def _run_ai_tester_stream(
     session_id: int,
     user_content: str,
     model_str: str,
-    db: AsyncSession,
-    current_user: User,
+    user_id: int,
     queue: asyncio.Queue,
 ):
-    """后台执行 AI 评测师流式回复，通过队列推送 SSE 事件。"""
+    """后台执行 AI 评测师流式回复，通过队列推送 SSE 事件。
+
+    使用独立数据库 session（修复缺陷 G：请求级 session 在响应结束后
+    被关闭，后台任务继续使用会 MissingGreenlet / closed-session 丢消息）。
+    """
+    from app.database import async_session_factory
+
     try:
-        # 通过服务层流式生成器获取 AI 回复
-        async for event_type, data in AIService.stream_ai_tester_response(
-            session_id=session_id,
-            user_message=user_content,
-            model_str=model_str,
-            db=db,
-            current_user=current_user,
-        ):
-            if event_type == "chunk":
-                await queue.put({"type": "chunk", "content": data})
-            elif event_type == "complete":
-                await queue.put({
-                    "type": "complete",
-                    "user_message_id": data["user_message_id"],
-                    "assistant_message_id": data["assistant_message_id"],
-                })
-            elif event_type == "error":
-                await queue.put({"type": "error", "message": data})
+        async with async_session_factory() as db:
+            result_user = await db.execute(
+                select(User).where(User.id == user_id)
+            )
+            user_obj = result_user.scalar_one_or_none()
+            if user_obj is None:
+                await queue.put({"type": "error", "message": "用户不存在"})
+                return
+            # 通过服务层流式生成器获取 AI 回复
+            async for event_type, data in AIService.stream_ai_tester_response(
+                session_id=session_id,
+                user_message=user_content,
+                model_str=model_str,
+                db=db,
+                current_user=user_obj,
+            ):
+                if event_type == "chunk":
+                    await queue.put({"type": "chunk", "content": data})
+                elif event_type == "complete":
+                    await queue.put({
+                        "type": "complete",
+                        "user_message_id": data["user_message_id"],
+                        "assistant_message_id": data["assistant_message_id"],
+                    })
+                elif event_type == "error":
+                    await queue.put({"type": "error", "message": data})
+            # 显式提交：用户消息与 AI 回复随流结束落库，
+            # 不再依赖请求收尾时的隐式 commit（客户端断开也不丢消息）
+            try:
+                await db.commit()
+            except Exception:  # noqa: BLE001
+                await db.rollback()
     except Exception as e:
-        logger.error("AI 评测师流式异常: %s", repr(e))
+        logger.exception("AI 评测师流式异常")
         await queue.put({"type": "error", "message": str(e)})
     finally:
         await queue.put(None)

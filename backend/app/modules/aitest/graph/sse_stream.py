@@ -4,6 +4,7 @@ SSE 流式协调器
 包装 LangGraph 执行过程，将各阶段事件转换为 SSE 格式推送至队列。
 与 ai.py 中的 _stream_queues 配合使用，兼容现有前端 SSE 消费逻辑。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -18,6 +19,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.modules.aitest.graph.graph import build_generation_graph
+from app.modules.aitest.api.ai import (
+    _mark_task_failed,
+    _persist_stage,
+    _save_case_items,
+    _save_test_cases_to_db,
+)
 from app.modules.aitest.graph.llm_adapter import build_chat_openai
 from app.modules.aitest.graph.prompts import (
     ANALYZE_PROMPT,
@@ -41,11 +48,13 @@ class SSECallbackHandler(AsyncCallbackHandler):
         self.stage = stage
 
     async def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
-        await self.queue.put({
-            "type": "chunk",
-            "content": token,
-            "stage": self.stage,
-        })
+        await self.queue.put(
+            {
+                "type": "chunk",
+                "content": token,
+                "stage": self.stage,
+            }
+        )
 
 
 async def _load_prompt_content(prompt_config: PromptConfig | None, default: str) -> str:
@@ -104,21 +113,33 @@ async def run_langgraph_pipeline(
             await _sse("status", status="generating", progress=5)
 
             # ---- 加载提示词 ----
-            analyze_prompt = await _load_prompt_content(task.analyzer_prompt_config, ANALYZE_PROMPT)
-            write_prompt = await _load_prompt_content(task.writer_prompt_config, WRITE_PROMPT)
-            review_prompt = await _load_prompt_content(task.reviewer_prompt_config, REVIEW_PROMPT)
-            revise_prompt = await _load_prompt_content(task.improver_prompt_config, REVISE_PROMPT)
+            analyze_prompt = await _load_prompt_content(
+                task.analyzer_prompt_config, ANALYZE_PROMPT
+            )
+            write_prompt = await _load_prompt_content(
+                task.writer_prompt_config, WRITE_PROMPT
+            )
+            review_prompt = await _load_prompt_content(
+                task.reviewer_prompt_config, REVIEW_PROMPT
+            )
+            revise_prompt = await _load_prompt_content(
+                task.improver_prompt_config, REVISE_PROMPT
+            )
 
             # ---- 构建 LLM 实例（各阶段独立回调，确保前端 2×2 卡片正确展示） ----
             analyzer_llm = build_chat_openai(task.writer_model_config, fallback_api_key)
-            analyzer_llm = analyzer_llm.with_config({
-                "callbacks": [SSECallbackHandler(queue, "analyze")],
-            })
+            analyzer_llm = analyzer_llm.with_config(
+                {
+                    "callbacks": [SSECallbackHandler(queue, "analyze")],
+                }
+            )
 
             writer_llm = build_chat_openai(task.writer_model_config, fallback_api_key)
-            writer_llm = writer_llm.with_config({
-                "callbacks": [SSECallbackHandler(queue, "writing")],
-            })
+            writer_llm = writer_llm.with_config(
+                {
+                    "callbacks": [SSECallbackHandler(queue, "writing")],
+                }
+            )
 
             reviewer_llm = None
             if enable_auto_review:
@@ -126,30 +147,56 @@ async def run_langgraph_pipeline(
                 reviewer_model = task.reviewer_model_config or task.writer_model_config
                 if reviewer_model:
                     reviewer_llm = build_chat_openai(reviewer_model, fallback_api_key)
-                    reviewer_llm = reviewer_llm.with_config({
-                        "callbacks": [SSECallbackHandler(queue, "review")],
-                    })
+                    reviewer_llm = reviewer_llm.with_config(
+                        {
+                            "callbacks": [SSECallbackHandler(queue, "review")],
+                        }
+                    )
 
             improver_llm = build_chat_openai(task.writer_model_config, fallback_api_key)
-            improver_llm = improver_llm.with_config({
-                "callbacks": [SSECallbackHandler(queue, "revise")],
-            })
+            improver_llm = improver_llm.with_config(
+                {
+                    "callbacks": [SSECallbackHandler(queue, "revise")],
+                }
+            )
 
             # ---- 构建 LangGraph 并执行 ----
             graph = build_generation_graph()
 
+            stage_order = ["analyze", "writing", "review", "revise"]
+            try:
+                skip_from = stage_order.index(continue_from_stage)
+            except ValueError:
+                skip_from = 0
+            skip_stages = stage_order[:skip_from]
+            skip_log = {
+                "analyze": "",
+                "writing": "⏭️ 复用已有需求分析结果",
+                "review": "⏭️ 复用已有分析与编写结果",
+                "revise": "⏭️ 复用已有编写与评审结果",
+            }
+            if skip_stages:
+                await _log(
+                    "info", skip_log.get(continue_from_stage, "⏭️ 跳过已完成阶段")
+                )
+            if task.generated_content is None:
+                task.generated_content = {}
+
             initial_state: GenerationState = {
                 "requirement_text": task.requirement_text or "",
+                "skip_stages": skip_stages,
                 "analyze_prompt": analyze_prompt,
                 "write_prompt": write_prompt,
                 "review_prompt": review_prompt,
                 "revise_prompt": revise_prompt,
-                "analysis": "",
-                "generated_text": "",
-                "review_feedback": "",
+                "analysis": (task.generated_content or {}).get("analysis", ""),
+                "generated_text": (task.generated_content or {}).get("text", ""),
+                "review_feedback": task.review_feedback or "",
                 "review_passed": True,
                 "overall_score": 10.0,
-                "revised_text": "",
+                "revised_text": (task.final_content or {}).get("text", "")
+                if isinstance(task.final_content, dict)
+                else "",
                 "error": None,
                 "_analyzer_llm": analyzer_llm,
                 "_writer_llm": writer_llm,
@@ -173,6 +220,17 @@ async def run_langgraph_pipeline(
                     if node_name == "analyze":
                         # 分析完成，进入编写阶段
                         task.progress = 15
+                        analysis = node_state.get("analysis", "")
+                        if "analyze" in skip_stages:
+                            if analysis:
+                                await _sse("chunk", stage="analyze", content=analysis)
+                        elif analysis:
+                            content = dict(task.generated_content or {})
+                            content["analysis"] = analysis
+                            task.generated_content = content
+                            await _persist_stage(
+                                db, task, "analyze", {"content": analysis}
+                            )
                         await db.flush()
 
                         await _log("info", "✅ 需求分析完成")
@@ -184,7 +242,9 @@ async def run_langgraph_pipeline(
                         # 编写完成，进入评审阶段
                         generated = node_state.get("generated_text", "")
                         task.progress = 40
-                        task.generated_content = {"text": generated}
+                        content = dict(task.generated_content or {})
+                        content["text"] = generated
+                        task.generated_content = content
                         await db.flush()
 
                         await _log("success", "📊 测试用例编写完成")
@@ -197,24 +257,25 @@ async def run_langgraph_pipeline(
 
                         # 保存 write 阶段生成的用例到候选用例表（供后续保存到用例库）
                         try:
-                            from app.modules.aitest.api.ai import _parse_test_cases_from_text as _parse_cases
-                            from app.modules.aitest.models.generated_case_item import GeneratedCaseItem
+                            from app.modules.aitest.api.ai import (
+                                _parse_test_cases_from_text as _parse_cases,
+                            )
+
                             parsed = await _parse_cases(generated)
                             write_cases_cache = list(parsed)
-                            for c in write_cases_cache:
-                                db.add(GeneratedCaseItem(
-                                    task_id=task.id,
-                                    title=c["title"],
-                                    priority=c.get("priority", "P2"),
-                                    module=c.get("module", ""),
-                                    precondition=c.get("precondition", ""),
-                                    test_steps=c.get("test_steps", ""),
-                                    expected_result=c.get("expected_result", ""),
-                                    status="adopted",
-                                    sort_order=0,
-                                ))
-                            await db.flush()
-                            await _log("info", f"📊 编写完成，已解析 {len(write_cases_cache)} 条用例")
+                            # 同步补写 generated_test_case 表（统一统计/详情读取源，修复缺陷 C）
+                            await _save_test_cases_to_db(task, generated, db)
+                            if not write_cases_cache:
+                                await _log(
+                                    "warning",
+                                    "⚠️ 未能从模型输出解析出结构化用例，可在「生成内容」中查看原文",
+                                )
+                            # 独立短事务写入候选用例，避免结果表死锁
+                            await _save_case_items(task.id, write_cases_cache, db)
+                            await _log(
+                                "info",
+                                f"📊 编写完成，已解析 {len(write_cases_cache)} 条用例",
+                            )
                         except Exception as e:
                             logger.warning("保存 write 用例失败: %s", e)
 
@@ -227,15 +288,23 @@ async def run_langgraph_pipeline(
                         task.review_feedback = feedback
                         task.progress = 70
                         await db.flush()
+                        if feedback:
+                            await _persist_stage(
+                                db, task, "review", {"content": feedback}
+                            )
 
                         await _log("success", f"✅ AI 评审完成（评分：{score}/10）")
 
                         # 无评审模型时补充默认展示内容，避免前端卡片空白
                         if not feedback and not reviewer_llm:
-                            await _sse("chunk", stage="review",
-                                content="（无评审模型，默认通过）\n\n评分：10.0/10\n\n状态：通过")
+                            await _sse(
+                                "chunk",
+                                stage="review",
+                                content="（无评审模型，默认通过）\n\n评分：10.0/10\n\n状态：通过",
+                            )
 
-                        await _sse("testing_review",
+                        await _sse(
+                            "testing_review",
                             overall_score=score,
                             passed=passed,
                             raw=feedback[:500] if feedback else "",
@@ -256,47 +325,57 @@ async def run_langgraph_pipeline(
                         task.final_content = {"text": revised}
                         task.status = "completed"
                         task.progress = 100
-                        task.completed_at = datetime.now(timezone.utc)
+                        from app.common.utils.time import local_now
+
+                        task.completed_at = local_now()
+                        if revised:
+                            await _persist_stage(
+                                db, task, "revise", {"content": revised}
+                            )
                         await db.flush()
 
                         # 合并 write + revise 用例并推送 cases 事件
+                        all_cases: list[dict] = []
                         try:
-                            from app.modules.aitest.api.ai import _parse_test_cases_from_text as _parse_cases
-                            from app.modules.aitest.models.generated_case_item import GeneratedCaseItem
+                            from app.modules.aitest.api.ai import (
+                                _parse_test_cases_from_text as _parse_cases,
+                            )
+
                             revise_cases = await _parse_cases(revised)
                             # 按 title 去重：write 用例优先，revise 新增的追加
-                            seen_titles = {c.get("title", "") for c in write_cases_cache if c.get("title")}
+                            seen_titles = {
+                                c.get("title", "")
+                                for c in write_cases_cache
+                                if c.get("title")
+                            }
                             all_cases = list(write_cases_cache)
+                            new_revise_cases: list[dict] = []
                             for c in revise_cases:
                                 title = c.get("title", "")
                                 if title and title not in seen_titles:
                                     seen_titles.add(title)
                                     all_cases.append(c)
-                                    # 保存新增的 revise 用例
-                                    db.add(GeneratedCaseItem(
-                                        task_id=task.id,
-                                        title=c["title"],
-                                        priority=c.get("priority", "P2"),
-                                        module=c.get("module", ""),
-                                        precondition=c.get("precondition", ""),
-                                        test_steps=c.get("test_steps", ""),
-                                        expected_result=c.get("expected_result", ""),
-                                        status="adopted",
-                                        sort_order=0,
-                                    ))
-                            await db.flush()
+                                    new_revise_cases.append(c)
+                            # 保存新增的 revise 用例（独立短事务，避免结果表死锁）
+                            if new_revise_cases:
+                                await _save_case_items(task.id, new_revise_cases, db)
                             if all_cases:
                                 await _sse("cases", cases=all_cases, progress=95)
                                 added = len(all_cases) - len(write_cases_cache)
-                                await _log("success", f"📊 共 {len(all_cases)} 条用例（编写 {len(write_cases_cache)} 条"
-                                    f"{f' + 修订新增 {added} 条' if added > 0 else '，无新增'}）")
+                                await _log(
+                                    "success",
+                                    f"📊 共 {len(all_cases)} 条用例（编写 {len(write_cases_cache)} 条"
+                                    f"{f' + 修订新增 {added} 条' if added > 0 else '，无新增'}）",
+                                )
                         except Exception as e:
                             logger.warning("解析/保存修订用例失败: %s", e)
 
+                        done_count = len(all_cases) if all_cases else 0
                         await _log("success", "🎉 用例修订完成，用例生成结束")
-                        await _sse("testing_done",
+                        await _sse(
+                            "testing_done",
                             task_id=task.task_id,
-                            generated_count=0,
+                            generated_count=done_count,
                             review_passed=False,
                             overall_score=node_state.get("overall_score", 0),
                         )
@@ -309,27 +388,27 @@ async def run_langgraph_pipeline(
             await db.commit()
 
         except Exception as e:
-            logger.error("LangGraph 生成异常: %s", repr(e))
-            try:
-                task.status = "failed"
-                task.error_message = str(e)
-                await db.flush()
-            except Exception:
-                pass
-
-            await queue.put({
-                "type": "error",
-                "message": str(e),
-            })
-            await queue.put({
-                "type": "log",
-                "message": f"❌ LangGraph 生成失败: {str(e)}",
-                "level": "error",
-            })
+            logger.exception("LangGraph 生成异常")
             try:
                 await db.rollback()
             except Exception:
                 pass
+            # 用独立 session 落库失败状态，避免当前 session 已损坏
+            await _mark_task_failed(task_db_id, str(e))
+
+            await queue.put(
+                {
+                    "type": "error",
+                    "message": str(e),
+                }
+            )
+            await queue.put(
+                {
+                    "type": "log",
+                    "message": "❌ LangGraph 生成失败: " + str(e),
+                    "level": "error",
+                }
+            )
         finally:
             # 结束信号
             await queue.put(None)

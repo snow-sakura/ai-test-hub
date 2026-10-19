@@ -47,6 +47,17 @@
             <el-tag size="small" effect="plain">{{ row.role }}</el-tag>
           </template>
         </el-table-column>
+        <el-table-column label="计费类型" min-width="120" align="center">
+          <template #default="{ row }">
+            <el-tag
+              :type="row.billing_type === 'paid' ? 'warning' : 'info'"
+              size="small"
+              effect="plain"
+            >
+              {{ row.billing_type === 'paid' ? '付费 · 并行' : '免费 · 串行' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="model_name" label="模型名称" min-width="160" align="center" show-overflow-tooltip />
         <el-table-column prop="base_url" label="Base URL" min-width="200" show-overflow-tooltip align="center" />
         <el-table-column label="API Key" min-width="160" align="center" show-overflow-tooltip>
@@ -137,6 +148,17 @@
           <el-col :span="12">
             <el-form-item label="模型名称" prop="model_name">
               <el-input v-model="formData.model_name" placeholder="例如：deepseek-v4-flash" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="计费类型" prop="billing_type">
+              <el-select v-model="formData.billing_type" style="width: 100%">
+                <el-option label="免费（任务串行执行）" value="free" />
+                <el-option label="付费（任务并行执行）" value="paid" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -284,6 +306,7 @@ const formData = reactive<AIModelConfigCreate>({
   name: '',
   model_type: '',
   role: '',
+  billing_type: 'free',
   api_key: '',
   base_url: '',
   model_name: '',
@@ -363,6 +386,7 @@ function openEditDialog(row: AIModelConfigDetail) {
   formData.api_key = ''  // 不预填脱敏值，留空表示不修改
   formData.base_url = row.base_url
   formData.model_name = row.model_name
+  formData.billing_type = row.billing_type === 'paid' ? 'paid' : 'free'
   formData.max_tokens = row.max_tokens
   formData.temperature = row.temperature
   formData.top_p = row.top_p
@@ -377,6 +401,7 @@ function resetForm() {
   formData.api_key = ''
   formData.base_url = ''
   formData.model_name = ''
+  formData.billing_type = 'free'
   formData.max_tokens = 4096
   formData.temperature = 0.7
   formData.top_p = 0.9

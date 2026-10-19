@@ -16,8 +16,9 @@
       通过动态 import 实现运行时切换，打包后两套代码在同一产物中
     -->
     <script type="module">
-      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
-        || window.innerWidth < 768;
+      // 仅通过 User-Agent 判断设备类型，不依赖窗口宽度
+      // 避免桌面端浏览器窗口较窄时误加载移动端应用
+      const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
       window.__IS_MOBILE__ = isMobile;
       if (isMobile) {
         import('/src/mobile/main.ts');

@@ -33,7 +33,11 @@ def build_chat_openai(model_config: AIModelConfig | None, fallback_api_key: str 
             streaming=True,
         )
 
-    api_key = (model_config.api_key or fallback_api_key).strip()
+    # 检测脱敏掩码 Key（历史污染数据）：含 **** 视为无效，回退 fallback
+    db_key = (model_config.api_key or "").strip()
+    if "****" in db_key:
+        db_key = ""
+    api_key = (db_key or fallback_api_key).strip()
     base_url = (model_config.base_url or "").rstrip("/")
     # 确保 base_url 是指向 /v1 的路径（LangChain 会自动补全 /chat/completions）
     if not base_url.endswith("/v1"):

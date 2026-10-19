@@ -11,7 +11,7 @@
 
 <style scoped lang="scss">
 .main-content {
-  padding: 24px;
+  padding: 28px 32px;
   min-height: calc(100vh - var(--topbar-height));
   overflow-y: auto;
   background: var(--bg);

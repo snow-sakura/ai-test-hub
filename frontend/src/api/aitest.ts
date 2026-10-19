@@ -10,6 +10,10 @@ import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import type {
   AIGenerationRequest,
   AIGenerationTask,
+  AIGenerationBatchRequest,
+  AIGenerationBatchResponse,
+  GenerationBatchStatus,
+  SchedulerStatus,
   AIEvaluationRequest,
   AIEvaluationResponse,
   AIReviewRequest,
@@ -68,6 +72,21 @@ export const aitestApi = {
 
   createGenerationTask(data: AIGenerationRequest): Promise<ApiResponse<AIGenerationTask>> {
     return client.post('/v1/ai/generate', data).then((res) => res.data)
+  },
+
+  /** 创建生成序列（批量任务：免费串行 / 付费并行） */
+  createGenerationBatch(data: AIGenerationBatchRequest): Promise<ApiResponse<AIGenerationBatchResponse>> {
+    return client.post('/v1/ai/generate/batch', data).then((res) => res.data)
+  },
+
+  /** 查询生成序列批次状态 */
+  getGenerationBatchStatus(batchId: string): Promise<ApiResponse<GenerationBatchStatus>> {
+    return client.get(`/v1/ai/generate/batch/${batchId}`).then((res) => res.data)
+  },
+
+  /** 查询生成调度器状态 */
+  getSchedulerStatus(): Promise<ApiResponse<SchedulerStatus>> {
+    return client.get('/v1/ai/scheduler/status').then((res) => res.data)
   },
 
   getStreamUrl(taskId: string): string {

@@ -23,6 +23,7 @@ class GenerationState(TypedDict):
     overall_score: float               # 评审总分
     revised_text: str                  # 修订后的用例文本
     error: Optional[str]               # 错误信息
+    skip_stages: list[str]             # 跳过的阶段（继续生成时复用预填结果）
 
     # 运行时注入（非序列化）
     _analyzer_llm: Optional[Any]         # 需求分析 LLM（使用 writer 模型配置）

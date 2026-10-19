@@ -51,16 +51,19 @@ async def list_all_ai_models(
     result = await db.execute(stmt)
     models = result.scalars().all()
 
-    # API Key 脱敏：仅显示前 4 + 后 4 字符
+    # API Key 脱敏：在响应副本上处理，绝不修改 ORM 持久对象
+    # （修复缺陷 B：直接突变 ORM 对象会被 session 脏检查写回数据库，
+    #   导致真实 Key 被脱敏值覆盖，后续生成调用 401 失败）
+    data: list[AIModelConfigDetail] = []
     for m in models:
-        if m.api_key and len(m.api_key) > 8:
-            m.api_key = m.api_key[:4] + "****" + m.api_key[-4:]
-        elif m.api_key:
-            m.api_key = "****"
+        detail = AIModelConfigDetail.model_validate(m)
+        if detail.api_key and len(detail.api_key) > 8:
+            detail.api_key = detail.api_key[:4] + "****" + detail.api_key[-4:]
+        elif detail.api_key:
+            detail.api_key = "****"
+        data.append(detail)
 
-    return ResponseModel(
-        data=[AIModelConfigDetail.model_validate(m) for m in models],
-    )
+    return ResponseModel(data=data)
 
 
 @router.post("/models", response_model=ResponseModel[AIModelConfigDetail])
@@ -77,6 +80,7 @@ async def create_ai_model(
         api_key=body.api_key or "",
         base_url=body.base_url,
         model_name=body.model_name,
+        billing_type=body.billing_type if body.billing_type in ("free", "paid") else "free",
         max_tokens=body.max_tokens,
         temperature=body.temperature,
         top_p=body.top_p,

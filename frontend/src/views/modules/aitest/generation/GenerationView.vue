@@ -47,13 +47,23 @@
           </div>
           <!-- 配置选项 -->
           <div class="config-row">
-            <el-select v-model="selectedWriterModelId" placeholder="选择模型" size="small" style="width:200px" filterable>
+            <el-select v-model="selectedWriterModelId" placeholder="选择模型" size="small" style="width:230px" filterable>
               <el-option
                 v-for="m in modelList"
                 :key="m.id"
                 :label="m.name + ' (' + m.model_name + ')'"
                 :value="m.id"
-              />
+              >
+                <span>{{ m.name }} ({{ m.model_name }})</span>
+                <el-tag
+                  size="small"
+                  :type="m.billing_type === 'paid' ? 'warning' : 'info'"
+                  effect="plain"
+                  style="margin-left:8px"
+                >
+                  {{ m.billing_type === 'paid' ? '付费·并行' : '免费·串行' }}
+                </el-tag>
+              </el-option>
             </el-select>
             <el-select v-model="selectedWriterPromptId" placeholder="选择提示词" size="small" style="width:200px" filterable>
               <el-option
@@ -69,16 +79,39 @@
               <el-option label="LangGraph" value="langgraph" />
               <el-option label="AutoGen" value="autogen" />
             </el-select>
+            <el-tooltip
+              :content="selectedBilling === 'paid'
+                ? '付费模型：批量需求并行执行（默认最多 4 路）'
+                : '免费模型：批量需求按顺序逐条执行（避免限流）'"
+              placement="top"
+            >
+              <el-tag
+                size="small"
+                :type="selectedBilling === 'paid' ? 'warning' : 'info'"
+                effect="dark"
+                style="margin-left:4px"
+              >
+                {{ selectedBilling === 'paid' ? '⚡ 并行序列' : '🐢 串行序列' }}
+              </el-tag>
+            </el-tooltip>
           </div>
           <!-- 操作 -->
           <div class="input-actions">
-            <el-button type="primary" :loading="isGenerating" :disabled="!requirementText.trim() && !uploadedFile" @click="handleGenerate">
+            <el-checkbox v-model="batchMode" size="small" :disabled="isGenerating">
+              序列模式（每行一条需求，独立成任务）
+            </el-checkbox>
+            <el-button
+              type="primary"
+              :loading="isGenerating"
+              :disabled="!requirementText.trim() && !uploadedFile"
+              @click="handleGenerate"
+            >
               <el-icon><MagicStick /></el-icon>
-              {{ isGenerating ? '生成中...' : '开始生成' }}
+              {{ isGenerating ? '生成中...' : (batchMode ? '提交生成序列（' + batchLines.length + ' 条）' : '开始生成') }}
             </el-button>
-            <el-button v-if="isGenerating" type="danger" ghost @click="handleCancel">取消</el-button>
+            <el-button v-if="isGenerating && !batchMode" type="danger" ghost @click="handleCancel">取消</el-button>
             <el-button 
-              v-if="currentStatus === 'failed'" 
+              v-if="currentStatus === 'failed' && !batchMode" 
               type="warning" 
               @click="handleRegenerate"
               :loading="isGenerating"
@@ -86,6 +119,7 @@
               <el-icon><Refresh /></el-icon>
               {{ hasPartialProgress ? '继续生成' : '重新生成' }}
             </el-button>
+            <el-button @click="batchMode = true">🔁 序列模式</el-button>
           </div>
         </el-card>
       </el-collapse-item>
@@ -203,6 +237,19 @@
         </el-card>
       </el-collapse-item>
 
+      <!-- 面板 2.5：生成序列看板（批量模式） -->
+      <el-collapse-item v-if="batchStatus" name="batch">
+        <template #title>
+          <span>📦 生成序列看板</span>
+          <el-tag size="small" :type="batchStatus.execution_mode === 'parallel' ? 'warning' : 'info'" effect="plain" style="margin-left:8px">
+            {{ batchStatus.completed + batchStatus.failed }} / {{ batchStatus.total }}
+          </el-tag>
+        </template>
+        <el-card shadow="never">
+          <BatchSequenceBoard :status="batchStatus" @view-task="handleViewBatchTask" />
+        </el-card>
+      </el-collapse-item>
+
       <!-- 面板 3：生成结果 -->
       <el-collapse-item title="📊 生成结果" name="results">
         <el-card shadow="never" class="results-card">
@@ -232,6 +279,11 @@
           <div v-if="isGenerating && testCases.length === 0" class="generating-status">
             <el-icon class="is-loading" :size="24"><Loading /></el-icon>
             <p>{{ currentStatusText }}</p>
+            <p v-if="currentStatus === 'queued' && queuePosition !== null" class="queue-hint">
+              <el-tag type="warning" size="small" effect="plain">
+                ⏳ 排队第 {{ queuePosition + 1 }} 位 / 共 {{ queueSize }} 个（免费模型串行执行）
+              </el-tag>
+            </p>
           </div>
 
           <!-- 候选用例表格 -->
@@ -314,7 +366,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { MagicStick, Upload, Document, FolderAdd, Download, Loading, ArrowDown, Check, Refresh } from '@element-plus/icons-vue'
@@ -323,7 +375,14 @@ import { useSSE } from '@/composables/useSSE'
 import StepIndicator from '@/components/aitest/generation/StepIndicator.vue'
 import PriorityBadge from '@/components/aitest/common/PriorityBadge.vue'
 import ReviewVisualization from './ReviewVisualization.vue'
-import type { SSEEvent, TestProject, AIModelConfigSummary, PromptConfigSummary } from '@/types/aitest'
+import BatchSequenceBoard from './BatchSequenceBoard.vue'
+import type {
+  SSEEvent,
+  TestProject,
+  AIModelConfigSummary,
+  PromptConfigSummary,
+  GenerationBatchStatus,
+} from '@/types/aitest'
 
 const route = useRoute()
 
@@ -344,11 +403,123 @@ const modelList = ref<AIModelConfigSummary[]>([])
 /** 可用提示词配置列表（writer 类型） */
 const promptList = ref<PromptConfigSummary[]>([])
 
+// ===== 生成序列（批量）状态 =====
+/** 序列模式开关：开启后按行拆分需求，逐条创建任务 */
+const batchMode = ref(false)
+/** 按行拆分出的需求列表 */
+const batchLines = computed(() =>
+  requirementText.value.split('\n').map((l) => l.trim()).filter((l) => l.length > 0),
+)
+/** 当前批次状态（序列看板数据源） */
+const batchStatus = ref<GenerationBatchStatus | null>(null)
+/** 批次轮询定时器 */
+let batchTimer: ReturnType<typeof setInterval> | null = null
+/** 当前所选模型的计费类型（free=串行 / paid=并行） */
+const selectedBilling = computed<'free' | 'paid'>(() => {
+  const m = modelList.value.find((x) => x.id === selectedWriterModelId.value)
+  return m?.billing_type === 'paid' ? 'paid' : 'free'
+})
+
+/** 停止批次轮询 */
+function stopBatchPolling() {
+  if (batchTimer) {
+    clearInterval(batchTimer)
+    batchTimer = null
+  }
+}
+
+/** 轮询批次状态直到全部结束 */
+function startBatchPolling(batchId: string) {
+  stopBatchPolling()
+  batchTimer = setInterval(async () => {
+    try {
+      const res = await aitestApi.getGenerationBatchStatus(batchId)
+      batchStatus.value = res.data
+      const st = res.data
+      const finished = st.completed + st.failed >= st.total
+      if (finished) {
+        stopBatchPolling()
+        isGenerating.value = false
+        addLog(
+          '✅ 生成序列执行完毕：完成 ' + st.completed + ' / 失败 ' + st.failed,
+          st.failed > 0 ? 'warning' : 'success',
+        )
+        if (st.failed === 0) {
+          ElMessage.success('生成序列全部完成')
+        }
+        if (activePanels.value.includes('batch') && !activePanels.value.includes('input')) {
+          // 保持看板展开
+        }
+      }
+    } catch {
+      stopBatchPolling()
+      isGenerating.value = false
+    }
+  }, 3000)
+}
+
+/** 提交生成序列（批量） */
+async function handleGenerateBatch() {
+  const reqs = batchLines.value
+  if (reqs.length === 0) {
+    ElMessage.warning('请输入需求，每行一条')
+    return
+  }
+  if (!selectedWriterModelId.value) {
+    ElMessage.warning('请选择编写模型')
+    return
+  }
+  isGenerating.value = true
+  logs.value = []
+  addLog(
+    '📦 提交生成序列：' + reqs.length + ' 条需求（' +
+      (selectedBilling.value === 'paid' ? '付费模型 · 并行执行' : '免费模型 · 串行执行') +
+      '）',
+    'info',
+  )
+  try {
+    const res = await aitestApi.createGenerationBatch({
+      requirements: reqs,
+      writer_model_config_id: selectedWriterModelId.value,
+      writer_prompt_config_id: selectedWriterPromptId.value,
+      enable_auto_review: enableAutoReview.value,
+      pipeline_type: pipelineType.value,
+    })
+    batchStatus.value = {
+      batch_id: res.data.batch_id,
+      execution_mode: res.data.execution_mode,
+      billing_type: res.data.billing_type,
+      max_concurrency: res.data.max_concurrency,
+      total: res.data.total,
+      completed: 0,
+      failed: 0,
+      running: 0,
+      queued: res.data.total,
+      tasks: [],
+    }
+    if (!activePanels.value.includes('batch')) {
+      activePanels.value = [...activePanels.value, 'batch']
+    }
+    startBatchPolling(res.data.batch_id)
+  } catch (e: any) {
+    isGenerating.value = false
+    ElMessage.error(e?.response?.data?.message || '创建生成序列失败')
+  }
+}
+
+/** 看板点击查看任务 */
+function handleViewBatchTask(taskId: string) {
+  window.open('/modules/aitest/generate/tasks/' + taskId, '_blank')
+}
+
 // 生成状态
 const isGenerating = ref(false)
 const currentStage = ref<string | null>(null)
 const currentStatus = ref('')
 const progress = ref(0)
+// 免费模型串行排队信息（queue_position 事件）
+const queuePosition = ref<number | null>(null)
+const queueSize = ref(0)
 const testCases = ref<any[]>([])
 const reviewFeedback = ref('')
 const errorMessage = ref('')
@@ -427,7 +598,9 @@ function addLog(message: string, level: string = 'info') {
 const stageOrder = ['analyze', 'writing', 'review', 'revise']
 const currentStatusText = computed(() => {
   const map: Record<string, string> = {
+    queued: '排队等待中...',
     pending: '准备中...',
+    analyzing: 'AI 正在分析需求...',
     generating: 'AI 正在生成用例...',
     reviewing: 'AI 正在评审...',
     revising: 'AI 正在改进...',
@@ -485,8 +658,27 @@ const { setUrl: setSSEUrl, connect: connectSSE, close: closeSSE } = useSSE(
         const rawStatus = event.status || ''
         currentStage.value = STATUS_STAGE_MAP[rawStatus] || rawStatus || null
         progress.value = event.progress || 0
+        if (rawStatus !== 'queued') {
+          queuePosition.value = null
+          queueSize.value = 0
+        }
         break
       }
+      case 'queue_position': {
+        queuePosition.value = (event as any).position ?? 0
+        queueSize.value = (event as any).queue_size ?? 0
+        if (currentStatus.value === 'queued') {
+          addLog(`⏳ 排队中：第 ${(event as any).position + 1} 位 / 共 ${(event as any).queue_size} 个任务`, 'info')
+        }
+        break
+      }
+      case 'cancelled':
+        currentStatus.value = 'cancelled'
+        currentStage.value = null
+        isGenerating.value = false
+        queuePosition.value = null
+        addLog('⏹ 任务已取消', 'warning')
+        break
       case 'testing_stage': {
         // LangGraph 阶段切换事件
         const newStage = event.stage || ''
@@ -622,6 +814,13 @@ function applyUploadedContent() {
 
 // 生成
 async function handleGenerate() {
+  // 序列模式：按行拆分为多个任务批量提交
+  if (batchMode.value) {
+    await handleGenerateBatch()
+    return
+  }
+  // 单任务模式：清理上一次的批次看板与轮询
+  stopBatchPolling()
   // 如果需求文本为空但有上传文件，自动应用文档内容
   if (!requirementText.value.trim() && uploadedFile.value?.content) {
     requirementText.value = uploadedFile.value.content
@@ -642,8 +841,10 @@ async function handleGenerate() {
   }
   isGenerating.value = true
   currentStage.value = null
-  currentStatus.value = 'pending'
-  progress.value = 5
+  currentStatus.value = 'queued'
+  queuePosition.value = null
+  queueSize.value = 0
+  progress.value = 1
   testCases.value = []
   reviewFeedback.value = ''
   errorMessage.value = ''
@@ -834,6 +1035,10 @@ onMounted(async () => {
   }
 })
 
+onBeforeUnmount(() => {
+  stopBatchPolling()
+})
+
 async function handleCancel() {
   try {
     await ElMessageBox.confirm('确定要取消当前生成任务吗？', '提示', {
@@ -945,7 +1150,7 @@ function handleExportExcel() {
       
       ElMessage.success(`已成功导出 ${testCases.value.length} 条测试用例`)
     })
-  } catch (e) {
+  } catch {
     ElMessage.error('导出失败')
   }
 }

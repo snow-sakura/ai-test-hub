@@ -21,6 +21,8 @@ export interface AIModelConfigDetail {
   api_key?: string | null
   base_url: string
   model_name: string
+  /** 计费类型：free=串行执行 / paid=并行执行 */
+  billing_type?: 'free' | 'paid'
   max_tokens: number
   temperature: number
   top_p: number
@@ -38,6 +40,8 @@ export interface AIModelConfigCreate {
   api_key?: string | null
   base_url: string
   model_name: string
+  /** 计费类型：free=串行执行 / paid=并行执行 */
+  billing_type?: 'free' | 'paid'
   max_tokens?: number
   temperature?: number
   top_p?: number

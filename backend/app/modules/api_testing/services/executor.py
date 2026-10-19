@@ -59,7 +59,9 @@ def _check_header_assertion(rule: dict, response_headers: dict) -> tuple[bool, s
     else:
         passed = str(actual) == str(expected)
 
-    detail = f"响应头断言 [{header_key}]: {actual} {'==' if passed else '!='} {expected}"
+    detail = (
+        f"响应头断言 [{header_key}]: {actual} {'==' if passed else '!='} {expected}"
+    )
     return passed, detail
 
 
@@ -99,7 +101,9 @@ def _check_json_path_assertion(rule: dict, response_body: dict) -> tuple[bool, s
     else:
         passed = str(actual) == str(expected)
 
-    detail = f"JSON Path 断言 [{json_path}]: {actual} {'==' if passed else '!='} {expected}"
+    detail = (
+        f"JSON Path 断言 [{json_path}]: {actual} {'==' if passed else '!='} {expected}"
+    )
     return passed, detail
 
 
@@ -174,7 +178,9 @@ async def _execute_single_endpoint(
             elif method == "delete":
                 resp = await client.delete(url, headers=headers, params=params)
             elif method == "patch":
-                resp = await client.patch(url, headers=headers, params=params, json=body)
+                resp = await client.patch(
+                    url, headers=headers, params=params, json=body
+                )
             else:
                 raise ValueError(f"不支持的 HTTP 方法: {method}")
 
@@ -248,7 +254,9 @@ async def execute_suite(
     await db.flush()
 
     execution_id = str(uuid.uuid4())
-    started_at = datetime.now(timezone.utc).isoformat()
+    from app.common.utils.time import local_now
+
+    started_at = local_now().isoformat()
 
     # 解析 endpoints_config 获取接口列表和配置
     endpoints_config = suite.endpoints_config or []
@@ -273,7 +281,7 @@ async def execute_suite(
             suite_name=suite.name,
             status="completed",
             started_at=started_at,
-            finished_at=datetime.now(timezone.utc).isoformat(),
+            finished_at=local_now().isoformat(),
         )
 
     # 查询所有接口
@@ -289,14 +297,16 @@ async def execute_suite(
     for eid in endpoint_ids:
         endpoint = endpoints_map.get(eid)
         if not endpoint:
-            raw_results.append(ApiExecutionResult(
-                endpoint_id=eid,
-                endpoint_name=f"未知接口(ID:{eid})",
-                method="?",
-                path="?",
-                error="接口不存在或已被删除",
-                passed=False,
-            ))
+            raw_results.append(
+                ApiExecutionResult(
+                    endpoint_id=eid,
+                    endpoint_name=f"未知接口(ID:{eid})",
+                    method="?",
+                    path="?",
+                    error="接口不存在或已被删除",
+                    passed=False,
+                )
+            )
             continue
 
         config = config_map.get(eid)
@@ -311,7 +321,7 @@ async def execute_suite(
     suite.status = "completed" if failed_count == 0 else "failed"
     await db.flush()
 
-    finished_at = datetime.now(timezone.utc).isoformat()
+    finished_at = local_now().isoformat()
 
     return ApiTestReport(
         execution_id=execution_id,

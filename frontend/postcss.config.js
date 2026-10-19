@@ -5,16 +5,14 @@ import pxToViewport from 'postcss-px-to-viewport-8-plugin'
 export default {
   plugins: [
     pxToViewport({
-      viewportWidth: 375,           // 设计稿基准宽度（iPhone 标准）
-      unitPrecision: 5,             // vw 小数精度
-      viewportUnit: 'vw',           // 转换单位
-      selectorBlackList: [],        // 不过滤选择器
-      minPixelValue: 1,             // 最小转换像素值
-      mediaQuery: false,            // 不在媒体查询中转换
-      // 仅转换 src/mobile/ 下的样式文件
-      include: [/\/mobile\//],
-      // 排除不需要转换的文件
-      exclude: [/\/node_modules\//, /\/web\//, /\/shared\//],
+      viewportWidth: 375,
+      unitPrecision: 5,
+      viewportUnit: 'vw',
+      selectorBlackList: [],
+      minPixelValue: 1,
+      mediaQuery: false,
+      // 排除所有非移动端文件（桌面端保持 px 单位）
+      exclude: [/\/node_modules\//, /\/src\/(?!mobile\/)/],
     }),
   ],
 }

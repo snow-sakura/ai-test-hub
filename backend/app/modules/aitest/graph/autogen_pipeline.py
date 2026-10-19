@@ -4,6 +4,7 @@ AutoGen 多智能体 SSE 流式协调器
 使用 Microsoft AutoGen (autogen-agentchat) 的模型客户端和 Agent 模式
 实现 analyze → write → review → revise 四阶段测试用例生成管线。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -20,6 +21,12 @@ from app.modules.aitest.graph.prompts import (
     REVIEW_PROMPT,
     WRITE_PROMPT,
 )
+from app.modules.aitest.api.ai import (
+    _mark_task_failed,
+    _persist_stage,
+    _save_case_items,
+    _save_test_cases_to_db,
+)
 from app.modules.aitest.models.ai_task import AIGenerationTask
 from app.modules.config_center.models.ai_model_config import AIModelConfig
 
@@ -28,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 async def _load_prompt_content(prompt_config, default: str) -> str:
     """加载提示词内容，优先使用数据库配置"""
-    if prompt_config and hasattr(prompt_config, 'content') and prompt_config.content:
+    if prompt_config and hasattr(prompt_config, "content") and prompt_config.content:
         return prompt_config.content
     return default
 
@@ -82,15 +89,25 @@ async def run_autogen_pipeline(
             await _sse("status", status="generating", progress=5)
 
             # ---- 加载提示词 ----
-            analyze_prompt = await _load_prompt_content(task.analyzer_prompt_config, ANALYZE_PROMPT)
-            write_prompt = await _load_prompt_content(task.writer_prompt_config, WRITE_PROMPT)
-            review_prompt = await _load_prompt_content(task.reviewer_prompt_config, REVIEW_PROMPT)
-            revise_prompt = await _load_prompt_content(task.improver_prompt_config, REVISE_PROMPT)
+            analyze_prompt = await _load_prompt_content(
+                task.analyzer_prompt_config, ANALYZE_PROMPT
+            )
+            write_prompt = await _load_prompt_content(
+                task.writer_prompt_config, WRITE_PROMPT
+            )
+            review_prompt = await _load_prompt_content(
+                task.reviewer_prompt_config, REVIEW_PROMPT
+            )
+            revise_prompt = await _load_prompt_content(
+                task.improver_prompt_config, REVISE_PROMPT
+            )
 
             # ---- 构建 AutoGen 模型客户端 ----
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            def _build_client(model_cfg: AIModelConfig | None, fallback_key: str) -> OpenAIChatCompletionClient:
+            def _build_client(
+                model_cfg: AIModelConfig | None, fallback_key: str
+            ) -> OpenAIChatCompletionClient:
                 """从 AIModelConfig 构建 AutoGen OpenAI 兼容客户端"""
                 if model_cfg is None:
                     return OpenAIChatCompletionClient(
@@ -100,7 +117,10 @@ async def run_autogen_pipeline(
                         temperature=0.7,
                         max_tokens=8192,
                     )
-                api_key = (model_cfg.api_key or fallback_key).strip()
+                db_key = (model_cfg.api_key or "").strip()
+                if "****" in db_key:  # 脱敏掩码 Key 视为无效，回退 fallback
+                    db_key = ""
+                api_key = (db_key or fallback_key).strip()
                 base_url = (model_cfg.base_url or "").rstrip("/")
                 if not base_url.endswith("/v1"):
                     base_url += "/v1"
@@ -144,22 +164,26 @@ async def run_autogen_pipeline(
                     async for chunk in client.create_stream(messages=messages):
                         if chunk and chunk.content:
                             full_text += chunk.content
-                            await queue.put({
-                                "type": "chunk",
-                                "content": chunk.content,
-                                "stage": stage,
-                            })
+                            await queue.put(
+                                {
+                                    "type": "chunk",
+                                    "content": chunk.content,
+                                    "stage": stage,
+                                }
+                            )
                 except Exception as e:
                     logger.warning("AutoGen 流式生成异常(stage=%s): %s", stage, e)
                     # 如果流式失败，回退到非流式调用
                     result = await client.create(messages=messages)
                     if result and result.content:
                         full_text = result.content
-                        await queue.put({
-                            "type": "chunk",
-                            "content": full_text,
-                            "stage": stage,
-                        })
+                        await queue.put(
+                            {
+                                "type": "chunk",
+                                "content": full_text,
+                                "stage": stage,
+                            }
+                        )
                 return full_text
 
             # ---- 阶段 1：需求分析 ----
@@ -167,11 +191,17 @@ async def run_autogen_pipeline(
             await _sse("testing_stage", stage="analyze", label="需求分析")
 
             analysis = await _stream_chat(
-                analyzer_client, analyze_prompt,
+                analyzer_client,
+                analyze_prompt,
                 task.requirement_text or "",
                 "analyze",
             )
             task.progress = 15
+            if analysis:
+                content = dict(task.generated_content or {})
+                content["analysis"] = analysis
+                task.generated_content = content
+                await _persist_stage(db, task, "analyze", {"content": analysis})
             await db.flush()
 
             await _log("success", "✅ 需求分析完成")
@@ -181,40 +211,45 @@ async def run_autogen_pipeline(
 
             # ---- 阶段 2：用例编写 ----
             # 将分析结果作为上下文传递给编写阶段
-            write_context = f"需求分析结果：\n\n{analysis}\n\n请根据以上需求分析编写测试用例。"
+            write_context = (
+                f"需求分析结果：\n\n{analysis}\n\n请根据以上需求分析编写测试用例。"
+            )
             generated_text = await _stream_chat(
-                writer_client, write_prompt,
+                writer_client,
+                write_prompt,
                 write_context,
                 "writing",
             )
             task.progress = 40
-            task.generated_content = {"text": generated_text}
+            content = dict(task.generated_content or {})
+            content["text"] = generated_text
+            task.generated_content = content
             task.status = "reviewing"
             await db.flush()
+            await _persist_stage(db, task, "write", {"content": generated_text})
 
             await _log("success", "📊 测试用例编写完成")
 
             # 保存 write 阶段生成的用例到候选用例表
             write_cases_cache: list[dict] = []
             try:
-                from app.modules.aitest.api.ai import _parse_test_cases_from_text as _parse_cases
-                from app.modules.aitest.models.generated_case_item import GeneratedCaseItem
+                from app.modules.aitest.api.ai import (
+                    _parse_test_cases_from_text as _parse_cases,
+                )
+
                 parsed = await _parse_cases(generated_text)
                 write_cases_cache = list(parsed)
-                for c in write_cases_cache:
-                    db.add(GeneratedCaseItem(
-                        task_id=task.id,
-                        title=c["title"],
-                        priority=c.get("priority", "P2"),
-                        module=c.get("module", ""),
-                        precondition=c.get("precondition", ""),
-                        test_steps=c.get("test_steps", ""),
-                        expected_result=c.get("expected_result", ""),
-                        status="adopted",
-                        sort_order=0,
-                    ))
-                await db.flush()
-                await _log("info", f"📊 编写完成，已解析 {len(write_cases_cache)} 条用例")
+                # 同步补写 generated_test_case 表（修复缺陷 C）
+                await _save_test_cases_to_db(task, generated_text, db)
+                if not write_cases_cache:
+                    await _log(
+                        "warning",
+                        "⚠️ 未能从模型输出解析出结构化用例，可在「生成内容」中查看原文",
+                    )
+                await _save_case_items(task.id, write_cases_cache, db)
+                await _log(
+                    "info", f"📊 编写完成，已解析 {len(write_cases_cache)} 条用例"
+                )
             except Exception as e:
                 logger.warning("保存 write 用例失败: %s", e)
 
@@ -238,7 +273,8 @@ async def run_autogen_pipeline(
                     f"请对以上测试用例进行全面评审。"
                 )
                 review_feedback_text = await _stream_chat(
-                    reviewer_client, review_prompt,
+                    reviewer_client,
+                    review_prompt,
                     review_context,
                     "review",
                 )
@@ -246,17 +282,33 @@ async def run_autogen_pipeline(
                 task.review_feedback = review_feedback_text
                 task.progress = 70
                 await db.flush()
+                if review_feedback_text:
+                    await _persist_stage(
+                        db, task, "review", {"content": review_feedback_text}
+                    )
 
                 # 从评审反馈中解析评分和结论
                 try:
                     import re
-                    score_match = re.search(r'(?:评分|得分|score)[：:\s]*(\d+(?:\.\d+)?)', review_feedback_text)
+
+                    score_match = re.search(
+                        r"(?:评分|得分|score)[：:\s]*(\d+(?:\.\d+)?)",
+                        review_feedback_text,
+                    )
                     if score_match:
                         overall_score = float(score_match.group(1))
-                    pass_match = re.search(r'(?:通过|passed|approved|pass)[：:\s]*(yes|true|是|通过|✓)', review_feedback_text, re.IGNORECASE)
+                    pass_match = re.search(
+                        r"(?:通过|passed|approved|pass)[：:\s]*(yes|true|是|通过|✓)",
+                        review_feedback_text,
+                        re.IGNORECASE,
+                    )
                     if pass_match:
                         review_passed = True
-                    reject_match = re.search(r'(?:驳回|拒绝|reject|fail)[：:\s]*(yes|true|是|拒绝|驳回)', review_feedback_text, re.IGNORECASE)
+                    reject_match = re.search(
+                        r"(?:驳回|拒绝|reject|fail)[：:\s]*(yes|true|是|拒绝|驳回)",
+                        review_feedback_text,
+                        re.IGNORECASE,
+                    )
                     if reject_match:
                         review_passed = False
                 except Exception:
@@ -264,7 +316,8 @@ async def run_autogen_pipeline(
 
                 await _log("success", f"✅ AI 评审完成（评分：{overall_score}/10）")
 
-                await _sse("testing_review",
+                await _sse(
+                    "testing_review",
                     overall_score=overall_score,
                     passed=review_passed,
                     raw=review_feedback_text[:500] if review_feedback_text else "",
@@ -299,50 +352,56 @@ async def run_autogen_pipeline(
                 )
 
             revised_text = await _stream_chat(
-                improver_client, revise_prompt,
+                improver_client,
+                revise_prompt,
                 revise_context,
                 "revise",
             )
             task.final_content = {"text": revised_text}
             task.status = "completed"
             task.progress = 100
-            task.completed_at = datetime.now(timezone.utc)
+            if revised_text:
+                await _persist_stage(db, task, "revise", {"content": revised_text})
+            from app.common.utils.time import local_now
+
+            task.completed_at = local_now()
             await db.flush()
 
             # 合并 write + revise 用例并推送 cases 事件
             try:
-                from app.modules.aitest.api.ai import _parse_test_cases_from_text as _parse_cases
-                from app.modules.aitest.models.generated_case_item import GeneratedCaseItem
+                from app.modules.aitest.api.ai import (
+                    _parse_test_cases_from_text as _parse_cases,
+                )
+
                 revise_cases = await _parse_cases(revised_text)
-                seen_titles = {c.get("title", "") for c in write_cases_cache if c.get("title")}
+                seen_titles = {
+                    c.get("title", "") for c in write_cases_cache if c.get("title")
+                }
                 all_cases = list(write_cases_cache)
+                new_revise_cases: list[dict] = []
                 for c in revise_cases:
                     title = c.get("title", "")
                     if title and title not in seen_titles:
                         seen_titles.add(title)
                         all_cases.append(c)
-                        db.add(GeneratedCaseItem(
-                            task_id=task.id,
-                            title=c["title"],
-                            priority=c.get("priority", "P2"),
-                            module=c.get("module", ""),
-                            precondition=c.get("precondition", ""),
-                            test_steps=c.get("test_steps", ""),
-                            expected_result=c.get("expected_result", ""),
-                            status="adopted",
-                            sort_order=0,
-                        ))
-                await db.flush()
+                        new_revise_cases.append(c)
+                # 保存新增的 revise 用例（独立短事务，避免结果表死锁）
+                if new_revise_cases:
+                    await _save_case_items(task.id, new_revise_cases, db)
                 if all_cases:
                     await _sse("cases", cases=all_cases, progress=95)
                     added = len(all_cases) - len(write_cases_cache)
-                    await _log("success", f"📊 共 {len(all_cases)} 条用例（编写 {len(write_cases_cache)} 条"
-                        f"{f' + 修订新增 {added} 条' if added > 0 else '，无新增'}）")
+                    await _log(
+                        "success",
+                        f"📊 共 {len(all_cases)} 条用例（编写 {len(write_cases_cache)} 条"
+                        f"{f' + 修订新增 {added} 条' if added > 0 else '，无新增'}）",
+                    )
             except Exception as e:
                 logger.warning("解析/保存修订用例失败: %s", e)
 
             await _log("success", "🎉 用例修订完成，用例生成结束")
-            await _sse("testing_done",
+            await _sse(
+                "testing_done",
                 task_id=task.task_id,
                 generated_count=0,
                 review_passed=review_passed,
@@ -352,26 +411,25 @@ async def run_autogen_pipeline(
             await db.commit()
 
         except Exception as e:
-            logger.error("AutoGen 生成异常: %s", repr(e))
-            try:
-                task.status = "failed"
-                task.error_message = str(e)
-                await db.flush()
-            except Exception:
-                pass
-
-            await queue.put({
-                "type": "error",
-                "message": str(e),
-            })
-            await queue.put({
-                "type": "log",
-                "message": f"❌ AutoGen 生成失败: {str(e)}",
-                "level": "error",
-            })
+            logger.exception("AutoGen 生成异常")
             try:
                 await db.rollback()
             except Exception:
                 pass
+            await _mark_task_failed(task_db_id, str(e))
+
+            await queue.put(
+                {
+                    "type": "error",
+                    "message": str(e),
+                }
+            )
+            await queue.put(
+                {
+                    "type": "log",
+                    "message": "❌ AutoGen 生成失败: " + str(e),
+                    "level": "error",
+                }
+            )
         finally:
             await queue.put(None)
