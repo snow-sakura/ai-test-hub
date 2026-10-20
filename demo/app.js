@@ -144,6 +144,28 @@
     }, 420);
   }
 
+  // ---------- 仓库数据源（GitHub 公开读取，无需授权） ----------
+  function loadFromRepo() {
+    var status = $('#gist-status');
+    status.textContent = '正在从 GitHub 仓库读取演示数据…';
+    return fetch('data/records.json', { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var list = data.records || [];
+        state.records = state.records.concat(list);
+        saveLocal();
+        renderRecords();
+        status.textContent = '✅ 已从 GitHub 仓库读取 ' + list.length +
+          ' 条演示记录（数据源：raw.githubusercontent.com）';
+      })
+      .catch(function (e) {
+        status.textContent = '❌ 读取失败：' + e.message;
+      });
+  }
+
   // ---------- Gist 存储 ----------
   function gistHeaders() {
     var h = { 'Content-Type': 'application/json' };
@@ -207,6 +229,7 @@
     loadLocal();
     renderRecords();
     renderBoard([]);
+    loadFromRepo();
 
     var form = $('#demo-form');
     if (!form) return;
@@ -242,6 +265,8 @@
       state.token = ($('#gist-token').value || '').trim();
       loadFromGist();
     });
+    var repoBtn = $('#repo-load');
+    if (repoBtn) repoBtn.addEventListener('click', loadFromRepo);
   }
 
   if (document.readyState === 'loading') {

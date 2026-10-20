@@ -160,7 +160,8 @@
         <div class="demo-board" id="demo-board"></div>
         <div class="records-box">
           <h3>② 生成记录（GitHub Gist 存储）</h3>
-          <p>演示记录默认存于浏览器本地；填写 GitHub Personal Access Token（scope: <code>gist</code>）后可写入自己的 Gist，公开 Gist 也可直接读取。</p>
+          <p>演示记录默认存于浏览器本地；点「读取仓库演示数据」可从 GitHub 仓库（raw.githubusercontent.com）拉取随仓库发布的样例记录；
+             填写 GitHub Personal Access Token（scope: <code>gist</code>）后可写入 / 读取自己的 Gist。</p>
           <div class="gist-row">
             <input id="gist-token" placeholder="GitHub PAT（可选，用于写入）" />
             <input id="gist-id" placeholder="Gist ID（可选，用于读取）" />
@@ -168,6 +169,7 @@
           <div class="acts">
             <button type="button" class="alt" id="gist-save">保存到 GitHub Gist</button>
             <button type="button" id="gist-load">从 GitHub Gist 读取</button>
+            <button type="button" class="alt" id="repo-load">读取仓库演示数据</button>
           </div>
           <div id="gist-status"></div>
         </div>

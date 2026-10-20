@@ -1,0 +1,52 @@
+{
+  "source": "ai-test-hub (GitHub)",
+  "description": "AI-HUB Demo 的演示生成记录，数据随仓库发布，由 GitHub Pages 静态托管。",
+  "updatedAt": "2026-10-20 18:55:00",
+  "records": [
+    {
+      "id": "AI-DEMO01",
+      "batch": "BATCH-DEMO01",
+      "title": "用户登录功能（手机号+验证码）",
+      "mode": "serial",
+      "status": "completed",
+      "cases": 6,
+      "createdAt": "2026-10-20 18:40:12"
+    },
+    {
+      "id": "AI-DEMO02",
+      "batch": "BATCH-DEMO01",
+      "title": "支付下单流程",
+      "mode": "serial",
+      "status": "completed",
+      "cases": 5,
+      "createdAt": "2026-10-20 18:40:31"
+    },
+    {
+      "id": "AI-DEMO03",
+      "batch": "BATCH-DEMO02",
+      "title": "优惠券抵扣与叠加",
+      "mode": "parallel",
+      "status": "completed",
+      "cases": 7,
+      "createdAt": "2026-10-20 18:41:02"
+    },
+    {
+      "id": "AI-DEMO04",
+      "batch": "BATCH-DEMO02",
+      "title": "积分兑换与退款",
+      "mode": "parallel",
+      "status": "completed",
+      "cases": 6,
+      "createdAt": "2026-10-20 18:41:02"
+    },
+    {
+      "id": "AI-DEMO05",
+      "batch": "BATCH-DEMO02",
+      "title": "账号注销与数据清理",
+      "mode": "parallel",
+      "status": "completed",
+      "cases": 4,
+      "createdAt": "2026-10-20 18:41:03"
+    }
+  ]
+}
