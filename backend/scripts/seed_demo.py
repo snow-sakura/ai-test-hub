@@ -32,7 +32,8 @@ from app.common.services.auth_service import hash_password  # noqa: E402
 from app.database import async_session_factory, engine  # noqa: E402
 from app.modules.aitest.models.ai_settings import AISettings  # noqa: E402
 from app.modules.config_center.models.ai_model_config import AIModelConfig  # noqa: E402
-from app.modules.config_center.models.prompt_config import PromptConfig  # noqa: E402
+from app.modules.config_center.models.prompt_config import PromptConfig
+from app.modules.config_center.models.generation_config import GenerationConfig  # noqa: E402
 
 # ---- 演示模型网关（OpenAI 兼容）----
 GATEWAY_BASE_URL = os.getenv("AGNES_BASE_URL", "https://apihub.agnes-ai.com/v1")
@@ -192,6 +193,22 @@ async def seed() -> None:
                     )
                 )
                 print(f"🧪 已创建 Mock 模型配置：{name}")
+
+        # ---- 默认生成行为配置（幂等）----
+        gen_exists = (
+            await db.execute(select(GenerationConfig).limit(1))
+        ).scalar_one_or_none()
+        if gen_exists is None:
+            db.add(
+                GenerationConfig(
+                    name="默认生成配置",
+                    default_output_mode="stream",
+                    enable_auto_review=True,
+                    review_timeout=120,
+                    is_active=True,
+                )
+            )
+            print("⚙️ 已创建默认生成行为配置")
 
         # ---- 提示词配置（按类型幂等）----
         for ptype, name, content in (
