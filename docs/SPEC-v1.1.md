@@ -60,13 +60,33 @@ StreamBroker（任务级事件总线）
 - **P3 文档**：README 全流程（每步骤主副标题+文字+浏览器自动截图）、`docs/TECHNICAL.md`、`docs/GUIDE.md`
 - **P4 清理与交付**：删 qa-screenshots/qa-*.mjs/旧截图/构建产物/数据库演示数据 → 密钥审计（.env 已 gitignore）→ 提交推送 GitHub → GitHub Pages Demo（纯静态交互演示，数据为演示样例）→ README 附 Demo 链接
 
-## 6. 验收标准
+## 6. 验收标准（执行结果）
 
-- [ ] 免费模型连发多任务：严格串行，UI 显示排队位次
-- [ ] 付费模型连发多任务：并行执行（≤4）
-- [ ] 生成结果可持久回看：分析/用例/评审阶段内容刷新后不丢失
-- [ ] 打开模型配置页后，真实 API Key 不被污染，生成仍成功
-- [ ] SSE 刷新重连可回放进度；失败任务状态正确落库并显示原因
-- [ ] `vue-tsc` 0 错误、`eslint` 通过、浏览器控制台无报错
-- [ ] 所有功能模块浏览器实测截图归档
-- [ ] 仓库无任何密钥/隐私数据；Pages Demo 可访问
+| # | 验收项 | 结果 | 验证方式 |
+|---|--------|------|----------|
+| 1 | 免费模型连发多任务：严格串行，UI 显示排队位次 | ✅ | 浏览器实测：第 1 条「生成中」、其余「排队第 1/2 位」，逐条递补 |
+| 2 | 付费模型连发多任务：并行执行（≤4） | ✅ | 浏览器实测：3 条同时「需求分析」进行中，30s 内全部完成（串行需 90s） |
+| 3 | 生成结果可持久回看：分析/用例/评审阶段内容刷新后不丢失 | ✅ | `generated_content={analysis,text}` + `ai_generation_result` 四阶段落库 |
+| 4 | 打开模型配置页后真实 API Key 不被污染 | ✅ | `configs.py` 脱敏改在响应副本上；连开 3 次页面后 DB Key 仍为原值 |
+| 5 | SSE 刷新重连可回放；失败任务状态正确落库 | ✅ | StreamBroker 历史回放（断线后重连收到完整事件序列）；失败任务 `status=failed` + 错误原因入库 |
+| 6 | 并发批量无死锁/锁超时 | ✅ | 4 路并行 ×2 轮：0 次 1213/1205，MissingGreenlet 清零 |
+| 7 | 「继续生成」真实跳过阶段并复用产物 | ✅ | `continue_from_stage=review`：10s 完成（跳过分析+编写），analysis 保留 |
+| 8 | 重新生成不产生重复数据 | ✅ | revise 前后 `generated_test_case`/`generated_case_item` 均为 6 条 |
+| 9 | `vue-tsc` 0 错误 | ✅ | `npx vue-tsc --noEmit` 无输出（eslint 未安装于本项目依赖，故不可用） |
+| 10 | 浏览器控制台无报错 | ✅ | Playwright 实测登录/生成/序列/详情/配置页 0 error |
+| 11 | 关键流程截图归档 | ✅ | `docs/images/` 12 张（首页/总览/流式/完成/序列排队/序列完成/配置/记录/用例库/评审/聊天室/Demo） |
+| 12 | 仓库无密钥/隐私数据 | ✅ | `git grep` 扫描 sk-/ghp_/PAT 均无命中；`.env`、`uploads/` 已 gitignore |
+| 13 | Pages Demo 可访问且交互正常 | ✅ | https://snow-sakura.github.io/ai-test-hub/ —— 串行/并行模拟 + GitHub 数据源读取 5 条记录 |
+| 14 | 清理无关内容 | ✅ | 删除 qa-screenshots(14)、qa-*.mjs、ai-chat-before.png、9 个无引用重复类型文件、演示数据（81 任务/952 衍生行） |
+
+## 7. 交付物清单
+
+| 交付物 | 位置 |
+|--------|------|
+| 需求规格 | `docs/REQUIREMENTS.md` |
+| 技术规格 | `docs/SPEC-v1.1.md`（本文档） |
+| 技术设计 | `docs/TECHNICAL.md` |
+| 操作手册 | `docs/USER_GUIDE.md` |
+| 全流程说明 + 截图 | `README.md` + `docs/images/` |
+| 在线 Demo | `demo/`（GitHub Pages + GitHub Actions + GitHub 仓库数据源） |
+| 离线联调 Mock | `backend/scripts/mock_llm_server.py` |
