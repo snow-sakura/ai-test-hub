@@ -164,6 +164,35 @@ async def seed() -> None:
                 )
                 print(f"🧠 已创建模型配置：{name}")
 
+        # ---- Mock 模型配置（离线体验：scripts/mock_llm_server.py）----
+        for billing, name in (
+            ("free", "Mock 免费模型"),
+            ("paid", "Mock 付费模型"),
+        ):
+            exists = (
+                await db.execute(
+                    select(AIModelConfig).where(AIModelConfig.name == name)
+                )
+            ).scalar_one_or_none()
+            if exists is None:
+                db.add(
+                    AIModelConfig(
+                        name=name,
+                        model_type="openai",
+                        role="writer",
+                        api_key="mock-key",
+                        base_url="http://127.0.0.1:8030/v1",
+                        model_name="mock-llm",
+                        billing_type=billing,
+                        max_tokens=8192,
+                        temperature=0.7,
+                        top_p=0.9,
+                        is_active=True,
+                        created_by=user.id,
+                    )
+                )
+                print(f"🧪 已创建 Mock 模型配置：{name}")
+
         # ---- 提示词配置（按类型幂等）----
         for ptype, name, content in (
             ("writer", "默认用例编写提示词", None),

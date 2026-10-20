@@ -47,3 +47,13 @@ backend/uploads/
 .playwright-mcp/
 *.png.tmp
 backend/scripts/__pycache__/
+
+# Playwright / 自动化测试临时产物
+.playwright-mcp/
+.qa-screenshots/
+qa-*.mjs
+*.report.json
+
+# 本地数据库与缓存
+.ruff_cache/
+*.db

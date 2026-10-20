@@ -51,6 +51,49 @@
   pre{background:#0b1220;border:1px solid #1e293b;border-radius:12px;padding:18px 20px;overflow:auto;font-size:13.5px;color:#a5f3fc}
   footer{padding:34px 0;text-align:center;color:var(--mut);font-size:13.5px}
   footer a{color:var(--p);text-decoration:none}
+  /* 交互演示 */
+  .demo-grid{display:grid;grid-template-columns:minmax(320px,420px) 1fr;gap:22px}
+  @media(max-width:860px){.demo-grid{grid-template-columns:1fr}}
+  .demo-form{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(30,41,59,.06)}
+  .demo-form h3{font-size:16px;margin-bottom:10px}
+  .demo-form textarea{width:100%;min-height:118px;border:1px solid #e2e8f0;border-radius:10px;padding:12px;font:inherit;font-size:14px;resize:vertical}
+  .demo-form textarea:focus{outline:none;border-color:var(--p);box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+  .demo-form select,.demo-form input{width:100%;border:1px solid #e2e8f0;border-radius:10px;padding:9px 11px;font:inherit;font-size:14px;margin-bottom:10px;background:#fff}
+  .demo-form label{display:block;font-size:13px;color:var(--mut);margin:10px 0 5px}
+  .demo-form button{width:100%;border:0;border-radius:10px;padding:11px 16px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;font-weight:600;font-size:15px;cursor:pointer}
+  .demo-board{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(30,41,59,.06);min-height:260px}
+  .bhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .bid{font-weight:700;font-size:15px}
+  .bmode{font-size:12px;padding:3px 10px;border-radius:999px}
+  .bmode.ser{background:#eef2ff;color:#4338ca}
+  .bmode.par{background:#fff7ed;color:#c2410c}
+  .bstats{display:flex;gap:14px;margin:10px 0 8px;font-size:13px;color:#64748b}
+  .bstats .ok{color:#10b981}.bstats .run{color:#2563eb}.bstats .bad{color:#ef4444}
+  .bbar{height:7px;background:#eef2f7;border-radius:999px;overflow:hidden;margin-bottom:12px}
+  .bbar i{display:block;height:100%;background:linear-gradient(90deg,#4f46e5,#7c3aed);transition:width .4s}
+  .blist{list-style:none;display:flex;flex-direction:column;gap:8px}
+  .blist li{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #eef2f7;border-radius:10px;font-size:13.5px}
+  .blist li.run{background:#f8faff;border-color:#dbeafe}
+  .blist li.done{background:#f6fcf9;border-color:#d7f0e2}
+  .blist li.bad{background:#fef7f7;border-color:#fbd5d5}
+  .blist .seq{width:22px;height:22px;border-radius:50%;background:#eef2ff;color:#4338ca;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .blist .ti{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .blist .st{font-size:12px;color:#475569}
+  .blist .sb{font-size:12px;color:#94a3b8;min-width:88px;text-align:right}
+  .empty{color:#94a3b8;font-size:14px;text-align:center;padding:60px 10px}
+  .gist-box{margin-top:18px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(30,41,59,.06)}
+  .gist-box h3{font-size:15px;margin-bottom:6px}
+  .gist-box p{font-size:13px;color:var(--mut);margin-bottom:10px}
+  .gist-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:720px){.gist-row{grid-template-columns:1fr}}
+  .gist-box .acts{display:flex;gap:10px;margin-top:8px}
+  .gist-box .acts button{width:auto;flex:1;background:#0f172a}
+  .gist-box .acts button.alt{background:#eef2ff;color:#4338ca}
+  #gist-status{font-size:13px;color:var(--mut);margin-top:10px;word-break:break-all}
+  .records-box{margin-top:18px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(30,41,59,.06)}
+  .records-box table{width:100%;border-collapse:collapse;font-size:13.5px}
+  .records-box th,.records-box td{padding:8px 10px;border-bottom:1px solid #f1f5f9;text-align:left}
+  .records-box th{color:var(--mut);font-weight:600;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -99,6 +142,46 @@
 
 <section>
   <div class="wrap">
+    <h2>生成序列交互演示</h2>
+    <p class="sub">复刻后端调度语义：免费模型严格串行 · 付费模型并行；演示数据可存进 GitHub Gist</p>
+    <div class="demo-grid">
+      <form class="demo-form" id="demo-form">
+        <h3>① 提交生成序列</h3>
+        <label>需求（每行一条，独立成任务）</label>
+        <textarea id="demo-reqs" placeholder="用户注册功能&#10;用户登录功能&#10;密码找回功能"></textarea>
+        <label>编写模型（计费类型决定调度）</label>
+        <select id="demo-model">
+          <option value="free">Mock 免费模型 · 串行执行</option>
+          <option value="paid">Mock 付费模型 · 并行执行（最多 4 路）</option>
+        </select>
+        <button type="submit">提交序列</button>
+      </form>
+      <div>
+        <div class="demo-board" id="demo-board"></div>
+        <div class="records-box">
+          <h3>② 生成记录（GitHub Gist 存储）</h3>
+          <p>演示记录默认存于浏览器本地；填写 GitHub Personal Access Token（scope: <code>gist</code>）后可写入自己的 Gist，公开 Gist 也可直接读取。</p>
+          <div class="gist-row">
+            <input id="gist-token" placeholder="GitHub PAT（可选，用于写入）" />
+            <input id="gist-id" placeholder="Gist ID（可选，用于读取）" />
+          </div>
+          <div class="acts">
+            <button type="button" class="alt" id="gist-save">保存到 GitHub Gist</button>
+            <button type="button" id="gist-load">从 GitHub Gist 读取</button>
+          </div>
+          <div id="gist-status"></div>
+        </div>
+        <div class="records-box">
+          <h3>③ 记录明细</h3>
+          <div id="demo-records"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <h2>界面演示</h2>
     <p class="sub">以下截图来自真实运行环境（Mock 模型驱动）</p>
 
@@ -140,5 +223,6 @@ cd ../frontend && npm i && npm run dev</pre>
     <a href="https://github.com/snow-sakura/ai-test-hub/blob/main/docs/TECHNICAL.md">技术文档</a>
   </div>
 </footer>
+<script src="app.js"></script>
 </body>
 </html>

@@ -93,8 +93,16 @@ export const aitestApi = {
     return `${client.defaults.baseURL}/v1/ai/generate/${taskId}/stream`
   },
 
-  getTaskList(page = 1, pageSize = 20): Promise<ApiResponse<AIGenerationTask[]>> {
-    return client.get('/v1/ai/tasks', { params: { page, page_size: pageSize } }).then((res) => res.data)
+  getTaskList(
+    page = 1,
+    pageSize = 20,
+    filters?: { status?: string; keyword?: string; batch_id?: string },
+  ): Promise<ApiResponse<AIGenerationTask[]>> {
+    return client
+      .get('/v1/ai/tasks', {
+        params: { page, page_size: pageSize, ...(filters || {}) },
+      })
+      .then((res) => res.data)
   },
 
   getTaskDetail(taskId: string): Promise<ApiResponse<AIGenerationTask>> {

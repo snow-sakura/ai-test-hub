@@ -55,6 +55,7 @@ export interface AIModelConfigUpdate {
   api_key?: string | null
   base_url?: string
   model_name?: string
+  billing_type?: 'free' | 'paid'
   max_tokens?: number
   temperature?: number
   top_p?: number

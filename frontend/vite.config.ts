@@ -27,17 +27,17 @@ export default defineConfig({
   },
 
   server: {
-    port: 5173,
+    port: Number(process.env.VITE_DEV_PORT || 5173),
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000',
         changeOrigin: true,
         ws: true,
         proxyTimeout: 300000,
         timeout: 300000,
       },
       '/ws': {
-        target: 'ws://127.0.0.1:8000',
+        target: (process.env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:8000').replace(/^http/, 'ws'),
         ws: true,
       },
     },

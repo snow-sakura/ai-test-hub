@@ -70,9 +70,17 @@ queued → analyzing → generating → reviewing → revising → completed
 
 ### 3.2 输出持久化
 
-- `ai_generation_task`：任务元数据（状态/进度/计费快照/batch_id）。
-- `ai_generation_result`：各阶段产物（analysis / generate / review / revise JSON）。
-- `generated_case_item`：解析后的结构化用例行（7 列：编号/模块/标题/优先级/前置条件/操作/预期）。
+| 表 | 内容 | 写入时机 |
+|----|------|----------|
+| `ai_generation_task` | 任务元数据（状态/进度/计费快照/batch_id/generated_content） | 每次阶段推进 |
+| `ai_generation_result` | 阶段产物（analyze / write / review / revise） | 阶段结束立即落库 |
+| `generated_test_case` | 结构化用例行（7 列），任务详情与报告统计的**统一读取源** | 用例解析完成 |
+| `generated_case_item` | 候选用例行（保存到用例库 / 批量采纳的载体） | 用例解析完成 |
+
+> 三条管线（traditional / langgraph / autogen）**统一写入** `generated_test_case` 与
+> `generated_case_item`，避免「详情页/统计恒为 0 条」的读表不一致问题。
+> `generated_content` 采用增量合并，保存为 `{"analysis": "...", "text": "..."}`，
+> 因此刷新页面后「需求分析」卡片不再空白。
 
 ## 4. 执行调度器（生成序列核心）
 
@@ -89,27 +97,44 @@ queued → analyzing → generating → reviewing → revising → completed
 
 任务创建时把模型计费类型快照进任务记录（`billing_type`），后续调度不再回查配置。
 
-### 4.2 准入队列（显式、无竞态）
+### 4.2 准入队列（信号量 + 等待队列）
 
 ```
-create_batch → N 个任务入队（queued）
-_launch():    同步占用 _running 名额（先占位后异步执行 → 无同批超限竞态）
-_start_next(): FIFO 出队，空位即调度
-_emit_positions(): 向批次内所有任务推 queue_position 事件（位次实时收缩）
-cancel(queued): 直接从队列移除，不启动
+submit(job) → billing=free  → Semaphore(1)   严格串行
+           → billing=paid  → Semaphore(N=4)  并行执行
+排队判定：信号量已占用 或 同类型等待队列非空 → job 进入 _waiting[billing]
+出队执行：_run(job) 获取令牌 → 执行管线 → 释放令牌
+位次推送：入队即广播 queue_position 事件（position/queue_size），排队中前端显示「第 N 位」
+取消    ：cancel(task_uid) 将等待中的 job 移出队列并广播 cancelled
 ```
 
 - **SSE 位次事件**：`{"type":"queue_position","position":2,"queue_size":3}`，前端渲染「排队中 · 第 N 位」。
 - **僵尸恢复**：应用启动 lifespan 扫描进行中任务 → 置 `failed`（进程重启导致的假运行）。
+- **状态语义**：任务创建即 `queued`；调度器真正开始执行时置 `pending` → 阶段推进。
 
-### 4.3 StreamBroker（流总线）
+### 4.3 并发写入与死锁治理
+
+批量并行时多条管线同时写入结果表，易触发 InnoDB 死锁（1213）与锁等待超时（1205）。治理策略：
+
+| 问题 | 处理 |
+|------|------|
+| 死锁导致整事务回滚，ORM 对象属性失效 → 后续访问抛 `MissingGreenlet` | 结果类 INSERT 拆到**独立短事务**（`_execute_with_retry`），主事务只保留任务状态更新 |
+| 结果表外键指向 `ai_generation_task`，独立事务需父行 S 锁，与主事务 X 锁互斥 | 写入前先 `_release_locks(db)`（提交主事务）释放行锁 |
+| 偶发死锁 | 独立短事务内置 3 次退避重试（0.3s/0.6s） |
+| 清理旧结果与插入并发 | `_purge_task_cases` 使用 SAVEPOINT（`begin_nested`）隔离 |
+
+> 失败落库同样使用独立 session（`_mark_task_failed`），保证「失败原因」必定入库，
+> 不会出现任务卡在 `generating` 的僵尸状态。
+
+### 4.4 StreamBroker（流总线）
 
 解决的问题：SSE 断线丢事件、事件类型混杂（`chunk`/`status`/`testing_stage`…）、多消费者。
 
 - 每任务一个 broker：**全量事件回放**（`GET /generate/{id}/stream?since=<seq>`）+ 实时广播。
 - 任务完成后事件保留 600s，支持结果页秒开回放。
 - 任务已到终态但内存事件丢失时，从 DB 阶段产物**合成 complete 终态**兜底，前端永不挂死。
-- 事件类型归一化：broker 统一包 `type` + `seq`，前端 `useSSE` 按 type 分发。
+- 事件类型归一化：broker 统一包 `type`，前端 `useSSE` 按 type 分发。
+- 事件历史保留 600s，过期自动回收（内存不泄漏）；结束信号 `None` 只在历史读完后下发。
 
 ## 5. AI Provider 与密钥解析
 

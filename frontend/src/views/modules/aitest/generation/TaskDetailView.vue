@@ -100,7 +100,9 @@
             <span class="header-cell action-col">操作</span>
           </div>
           <div v-for="c in candidateCases" :key="c.id || c.case_id" class="case-row" :class="{ selected: selectedIds.includes(c.id!) }">
-            <el-checkbox v-model="selectedIds" :label="c.id" size="small" @change="onSelectionChange" />
+            <el-checkbox-group v-model="selectedIds" @change="onSelectionChange">
+              <el-checkbox :value="c.id" size="small" />
+            </el-checkbox-group>
             <span class="cell title-col">{{ c.title }}</span>
             <span class="cell priority-col"><PriorityBadge :priority="(c.priority || 'P2').toUpperCase()" /></span>
             <span class="cell module-col">{{ c.module || '—' }}</span>

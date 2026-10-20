@@ -32,6 +32,16 @@
         style="width: 280px"
         @change="handleFilterChange"
       />
+      <el-input
+        v-model="searchKeyword"
+        placeholder="搜索标题 / 需求"
+        clearable
+        style="width: 220px"
+        @keyup.enter="handleFilterChange"
+        @clear="handleFilterChange"
+      >
+        <template #prefix><el-icon><Search /></el-icon></template>
+      </el-input>
       <el-select
         v-model="filterStatus"
         placeholder="状态筛选"
@@ -137,6 +147,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { aitestApi } from '@/api/aitest'
 import type { AIGenerationTask, TestProject } from '@/types/aitest'
 
@@ -174,6 +185,8 @@ const filterProjectId = ref<number | undefined>(undefined)
 const dateRange = ref<[string, string] | null>(null)
 /** 状态筛选 */
 const filterStatus = ref<TaskStatus | ''>('')
+/** 关键词搜索（服务端过滤） */
+const searchKeyword = ref('')
 /** 当前分页 */
 const currentPage = ref(1)
 /** 每页条数 */
@@ -195,18 +208,16 @@ function clearSelection() {
 
 // ==================== 过滤与分页计算 ====================
 
-/** 根据筛选条件过滤后的任务列表 */
-const filteredTasks = computed(() => {
+/** 总记录数（服务端分页） */
+const total = ref(0)
+
+/** 当前页可见数据（服务端已分页，客户端仅做项目/日期的本地过滤） */
+const pagedTasks = computed(() => {
   let list = tasks.value
 
   // 按项目筛选
   if (filterProjectId.value) {
     list = list.filter((t) => t.project_id === filterProjectId.value)
-  }
-
-  // 按状态筛选
-  if (filterStatus.value) {
-    list = list.filter((t) => t.status === filterStatus.value)
   }
 
   // 按创建日期范围筛选
@@ -221,15 +232,6 @@ const filteredTasks = computed(() => {
   }
 
   return list
-})
-
-/** 总记录数 */
-const total = computed(() => filteredTasks.value.length)
-
-/** 当前页可见数据 */
-const pagedTasks = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  return filteredTasks.value.slice(start, start + pageSize.value)
 })
 
 // ==================== 状态工具函数 ====================
@@ -260,8 +262,14 @@ function formatTime(time: string | null): string {
 async function loadTasks() {
   loading.value = true
   try {
-    const res = await aitestApi.getTaskList(currentPage.value, pageSize.value)
+    const res = await aitestApi.getTaskList(currentPage.value, pageSize.value, {
+      status: filterStatus.value || undefined,
+      keyword: searchKeyword.value || undefined,
+    })
     tasks.value = res.data || []
+    // 服务端分页总数（优先用后端返回的 meta）
+    const meta = (res as any).pagination
+    total.value = meta?.total ?? tasks.value.length
   } catch (e: any) {
     ElMessage.error(e?.response?.data?.detail || '加载生成记录失败')
   } finally {
